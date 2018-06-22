@@ -22,50 +22,57 @@ process.on('unhandledRejection', error => {
     const width = 1000
         , height = 1000;
 
-    let lights = Array(height).fill( Array(width).fill(false) );
+    // Fill array 1000 × 1000 with values (false)
+    let lights = Array.from(
+        Array(height),
+        () => Array.from(Array(width), () => false)
+    );
 
+    // Parse commands
     data = data.map(line => {
         // line = 'turn on 489,959 through 759,964'
         let res = matchRe.exec(line);
-        if (res) res = res.filter( (v,i) => i > 0 ? v : false );
+        if (res) res = res.slice(1)
+            .map( (v, i) => i > 0 ? +v : v );
         return res;
     });
 
-    let actions = data.map(action => {
+    // Execute commands on lights array
+    data.map(action => {
         if (!action) {
             return;
         }
 
         let [cmd, x1, y1, x2, y2] = action;
-
-        console.log(action);
+        //console.log(cmd, x1, y1, x2, y2);
 
         for (let j = y1; j <= y2; j++) {
-            console.log(j);
             for (let i = x1; i <= x2; i++) {
-
-                lights[i][j] = !lights[i][j];
-
-                // switch (cmd) {
-                //     case 'on':
-                //         lights[i][j] = true;
-                //         break;
-                //     case 'off':
-                //         lights[i][j] = false;
-                //         break;
-                //     case 'toggle':
-                //         lights[i][j] = !lights[i][j];
-                //         break;
-                // }
-
+                switch (cmd) {
+                    case 'on':
+                        lights[i][j] = true;
+                        break;
+                    case 'off':
+                        lights[i][j] = false;
+                        break;
+                    case 'toggle':
+                        lights[i][j] = !lights[i][j];
+                        break;
+                }
             }
         }
-
-        return cmd;
     });
-    //console.log(actions);
 
-    let countOn = 0;
+    // Count lit lights
+    let countLit = lights.reduce(
+        (sum, line) => line.reduce( (sum, pixel) => pixel ? sum + +pixel : sum, sum),
+        0
+    );
+
+    console.log(countLit, 'how many lights are lit');
+
+
+    return;
 
     lights = lights.map(line => {
 
