@@ -105,13 +105,13 @@ process.on('unhandledRejection', error => {
         + width                     // Width in pixels
         + height                    // Height in pixels
         + '\x01\x00'                // Number of color planes (1)
-        + '\x18\x00'                // 24 bits / pixel
+        + '\x18\x00'                // 24 bits per pixel
 
         + '\x00\x00\x00\x00'        // No compression (0)
         + (width * height)          // Size of the raw bitmap data (bytes)
         + '\x13\x0B\x00\x00'        // Horizontal resolution (pixels per metre, signed integer), 2835 dpm = 72 dpi
         + '\x13\x0B\x00\x00'        // Vertical resolution, 2835 dpm = 72 dpi
-        + '\x00\x00\x00\x00'        // Number of colors in the palette (keep 0 for 24-bit)
+        + '\x00\x00\x00\x00'        // Number of colors in the palette (keep 0 for default 2^bpp)
         + '\x00\x00\x00\x00'        // Important colors (0 = every color is important)
         + 'binary data...';
 
@@ -124,11 +124,12 @@ process.on('unhandledRejection', error => {
 
 
     // Bits per pixel
-    const bpp = 24;
+    const bpp = 3 * 8;
+    let dataSize = width * height * (bpp / 8 | 0);
 
     let BMP = new DataView(new ArrayBuffer(54));
     BMP.setString(0, 'BM');                         // Windows Bitmap
-    BMP.setUint32(2, width * height + 54, true);    // File size (bytes): W × H + headers (=54 bytes)
+    BMP.setUint32(2, dataSize + 54, true);          // File size (bytes): W × H + headers (=54 bytes)
     BMP.setUint16(6, 0, true);                      // Reserved
     BMP.setUint16(8, 0, true);                      // Reserved
     BMP.setUint32(10, 54, true);                    // Pixel array offset (=54 bytes)
@@ -139,10 +140,10 @@ process.on('unhandledRejection', error => {
     BMP.setUint16(26, 1, true);                     // Number of color planes (1)
     BMP.setUint16(28, bpp, true);                   // Bits per pixel
     BMP.setUint32(30, 0, true);                     // No compression (0)
-    BMP.setUint32(34, width * height, true);        // Size of the raw bitmap data (bytes)
+    BMP.setUint32(34, dataSize, true);              // Size of the raw bitmap data (bytes)
     BMP.setUint32(38, 2835, true);                  // Horizontal resolution (pixels per metre, signed integer), 2835 dpm = 72 dpi
     BMP.setUint32(42, 2835, true);                  // Vertical resolution, 2835 dpm = 72 dpi
-    BMP.setUint32(46, 0, true);                     // Number of colors in the palette (keep 0 for default to 2^bpp)
+    BMP.setUint32(46, 0, true);                     // Number of colors in the palette (keep 0 for default 2^bpp)
     BMP.setUint32(50, 0, true);                     // Important colors (0 = every color is important)
 
 
