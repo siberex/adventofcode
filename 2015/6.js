@@ -1,26 +1,21 @@
+"use strict";
 
-var str = heredoc(function(){/*
+const fs    = require('fs')
+    , path  = require('path')
+;
 
-*/});
+process.on('unhandledRejection', error => {
+    console.error('unhandledRejection', error.message);
+});
 
-var arr = str.split("\n");
+(async function () {
+    // If current file is 123.js, will read file 123.txt as input
+    const inputFile = __dirname + '/' + path.basename(__filename, '.js') + '.txt';
+    let data = await fs.readFileSync(inputFile, 'utf8');
 
-
-for (var i in arr) {
-
-}
-
-
-
-
-
-
-
+    data = data.split("\n");
 
 
 
 
-// Multiline Function String - Nate Ferrero - Public Domain
-function heredoc (f) {
-	return f.toString().match(/\/\*\s*([\s\S]*?)\s*\*\//m)[1];
-};
+})();
