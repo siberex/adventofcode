@@ -72,21 +72,12 @@ process.on('unhandledRejection', error => {
     console.log(countLit, 'how many lights are lit');
 
 
-    return;
-
     lights = lights.map(line => {
 
-        return line.map(light => {
-            if (light) {
-                countOn++;
-                return '1';
-            }
-            return '0'
-        }).join('');
+        return line.map(light => +light).join('');
 
         // return line.reduce((acc, light) => {
         //     if (light) {
-        //         countOn++;
         //         return acc + '*';
         //     }
         //     return acc + '_';
@@ -102,26 +93,65 @@ process.on('unhandledRejection', error => {
         console.log("The file was saved!");
     });
 
-    //console.log(lights);
-    console.log(countOn);
 
-    // let bitmap = 'BM'                       // Windows Bitmap
-    //     + (width * height + 54).toString()  // File size (bytes): W × H + header (54 bytes)
-    //     + '\x00\x00'                        // Reserved
-    //     + '\x00\x00'                        // Reserved
-    //     + '\x36\x00\x00\x00'                // Pixel array offset (54 bytes)
-    //     + '\x28\x00\x00\x00'                // Windows BITMAPINFOHEADER size (40 bytes)
-    //     + width                             // Width in pixels
-    //     + height                            // Height in pixels
-    //     + '\x01\x00'                        // Number of color planes (1)
-    //     + '\x18\x00'                        // 24 bits / pixel
-    //     + '\x00\x00\x00\x00'                // No compression (0)
-    //     + (width * height)                  // Size of the raw bitmap data (bytes)
-    //     + '\x13\x0B\x00\x00'                // Horizontal resolution (pixel per metre, signed integer), 2835 dpm = 72 dpi
-    //     + '\x13\x0B\x00\x00'                // Vertical resolution, 2835 dpm = 72 dpi
-    //     + '\x00\x00\x00\x00'                // Number of colors in the palette (keep 0 for 24-bit)
-    //     + '\x00\x00\x00\x00'                // Important colors (0 = every color is important)
-    //     + '';
+    // https://en.wikipedia.org/wiki/BMP_file_format
+    let bitmap = 'BM'               // Windows Bitmap header, 14 bytes total:
+        + (width * height + 54)     // File size (bytes): W × H + headers (=54 bytes)
+        + '\x00\x00'                // Reserved
+        + '\x00\x00'                // Reserved
+        + '\x36\x00\x00\x00'        // Pixel array offset (=54 bytes)
+        // Windows BITMAPINFOHEADER
+        + '\x28\x00\x00\x00'        // Header size (=40 bytes)
+        + width                     // Width in pixels
+        + height                    // Height in pixels
+        + '\x01\x00'                // Number of color planes (1)
+        + '\x18\x00'                // 24 bits / pixel
+
+        + '\x00\x00\x00\x00'        // No compression (0)
+        + (width * height)          // Size of the raw bitmap data (bytes)
+        + '\x13\x0B\x00\x00'        // Horizontal resolution (pixels per metre, signed integer), 2835 dpm = 72 dpi
+        + '\x13\x0B\x00\x00'        // Vertical resolution, 2835 dpm = 72 dpi
+        + '\x00\x00\x00\x00'        // Number of colors in the palette (keep 0 for 24-bit)
+        + '\x00\x00\x00\x00'        // Important colors (0 = every color is important)
+        + 'binary data...';
+
+
+    let buffer = new ArrayBuffer(24);
+    // ... read the data into the buffer ...
+    let idView = new Uint32Array(buffer, 0, 1);
+    let usernameView = new Uint8Array(buffer, 4, 16);
+    let amountDueView = new Float32Array(buffer, 20, 1);
+
+
+    // Bits per pixel
+    const bpp = 24;
+
+    let BMP = new DataView(new ArrayBuffer(54));
+    BMP.setString(0, 'BM');                         // Windows Bitmap
+    BMP.setUint32(2, width * height + 54, true);    // File size (bytes): W × H + headers (=54 bytes)
+    BMP.setUint16(6, 0, true);                      // Reserved
+    BMP.setUint16(8, 0, true);                      // Reserved
+    BMP.setUint32(10, 54, true);                    // Pixel array offset (=54 bytes)
+    // Windows BITMAPINFOHEADER
+    BMP.setUint32(14, 40, true);                    // Header size (=40 bytes)
+    BMP.setUint32(18, width, true);                 // Width in pixels
+    BMP.setUint32(22, height, true);                // Height in pixels
+    BMP.setUint16(26, 1, true);                     // Number of color planes (1)
+    BMP.setUint16(28, bpp, true);                   // Bits per pixel
+    BMP.setUint32(30, 0, true);                     // No compression (0)
+    BMP.setUint32(34, width * height, true);        // Size of the raw bitmap data (bytes)
+    BMP.setUint32(38, 2835, true);                  // Horizontal resolution (pixels per metre, signed integer), 2835 dpm = 72 dpi
+    BMP.setUint32(42, 2835, true);                  // Vertical resolution, 2835 dpm = 72 dpi
+    BMP.setUint32(46, 0, true);                     // Number of colors in the palette (keep 0 for default to 2^bpp)
+    BMP.setUint32(50, 0, true);                     // Important colors (0 = every color is important)
+
+
+    new Uint8ClampedArray(BMP.buffer, 54, width * height);
+
+    //let BMPdata = new DataView(new ArrayBuffer(width * height));
+    //BMPdata.setUint8ClampedArray();
+
+
 
     //
     // function parseBMP(arrayBuffer) {
@@ -139,6 +169,10 @@ process.on('unhandledRejection', error => {
     //     var imageHeight = stream.readInt32();
     //     // ...
     // }
+
+
+
+
 
 
 })();
