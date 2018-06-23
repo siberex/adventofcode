@@ -124,33 +124,49 @@ process.on('unhandledRejection', error => {
 
 
     // Bits per pixel
-    const bpp = 3 * 8;
-    let dataSize = width * height * (bpp / 8 | 0);
+    const bpp           = 24;
+    let dataSize        = width * height * (bpp / 8 | 0);
+    // Each row in the Pixel array is padded to a multiple of 4 bytes in size
+    let rowSize         = Math.floor( (bpp * width + 31) / 32 ) * 4;
+    let pixelArraySize  = rowSize * height;
 
     let BMP = new DataView(new ArrayBuffer(54));
+    // Bitmap file header
     BMP.setString(0, 'BM');                         // Windows Bitmap
-    BMP.setUint32(2, dataSize + 54, true);          // File size (bytes): W × H + headers (=54 bytes)
+    BMP.setUint32(2, pixelArraySize + 54, true);    // File size (bytes): W × H + headers (=54 bytes)
     BMP.setUint16(6, 0, true);                      // Reserved
     BMP.setUint16(8, 0, true);                      // Reserved
     BMP.setUint32(10, 54, true);                    // Pixel array offset (=54 bytes)
-    // Windows BITMAPINFOHEADER
-    BMP.setUint32(14, 40, true);                    // Header size (=40 bytes)
+    // DIB header, Windows BITMAPINFOHEADER
+    BMP.setUint32(14, 40, true);                    // DIB header size (=40 bytes)
     BMP.setUint32(18, width, true);                 // Width in pixels
     BMP.setUint32(22, height, true);                // Height in pixels
     BMP.setUint16(26, 1, true);                     // Number of color planes (1)
     BMP.setUint16(28, bpp, true);                   // Bits per pixel
     BMP.setUint32(30, 0, true);                     // No compression (0)
-    BMP.setUint32(34, dataSize, true);              // Size of the raw bitmap data (bytes)
+    BMP.setUint32(34, pixelArraySize, true);        // Size of the raw bitmap data (bytes) including padding (!)
     BMP.setUint32(38, 2835, true);                  // Horizontal resolution (pixels per metre, signed integer), 2835 dpm = 72 dpi
     BMP.setUint32(42, 2835, true);                  // Vertical resolution, 2835 dpm = 72 dpi
     BMP.setUint32(46, 0, true);                     // Number of colors in the palette (keep 0 for default 2^bpp)
     BMP.setUint32(50, 0, true);                     // Important colors (0 = every color is important)
 
+    let bmpData = new DataView(new ArrayBuffer(pixelArraySize));
 
-    new Uint8ClampedArray(BMP.buffer, 54, width * height);
+    // Offset of a pixel value
+    let i = 0;
+    let byesPerPixel = (bpp / 8) | 0;
+    // From bottom row to the top
+    for (let y = height - 1; y >= 0; y--) {
+        for (let x = 0; x < width; x++) {
+            //let pixelData = data[y][x];
+            let pixelData = 0;
+            bmpData.setUint24(i, pixelData);
+            i += byesPerPixel;
+        }
+        i = rowSize * (height - y);
+    }
 
-    //let BMPdata = new DataView(new ArrayBuffer(width * height));
-    //BMPdata.setUint8ClampedArray();
+    //bmpData.setUint8ClampedArray(...);
 
 
 
