@@ -4,11 +4,20 @@ const fs    = require('fs')
     , path  = require('path')
 ;
 
+
+const width = 1000
+    , height = 1000;
+
+
 process.on('unhandledRejection', error => {
     console.error('unhandledRejection', error.message);
 });
 
+
 (async function () {
+    return;
+
+
     // If current file is 123.js, will read file 123.txt as input
     const inputFile = __dirname + '/' + path.basename(__filename, '.js') + '.txt';
     const outputFile = __dirname + '/' + path.basename(__filename, '.js') + '-out.txt';
@@ -18,9 +27,6 @@ process.on('unhandledRejection', error => {
 
     let matchRe = /^(?:turn )?(on|off|toggle) (\d+),(\d+) through (\d+),(\d+)$/;
 
-
-    const width = 1000
-        , height = 1000;
 
     // Fill array 1000 × 1000 with values (false)
     let lights = Array.from(
@@ -94,49 +100,24 @@ process.on('unhandledRejection', error => {
     });
 
 
-    // https://en.wikipedia.org/wiki/BMP_file_format
-    let bitmap = 'BM'               // Windows Bitmap header, 14 bytes total:
-        + (width * height + 54)     // File size (bytes): W × H + headers (=54 bytes)
-        + '\x00\x00'                // Reserved
-        + '\x00\x00'                // Reserved
-        + '\x36\x00\x00\x00'        // Pixel array offset (=54 bytes)
-        // Windows BITMAPINFOHEADER
-        + '\x28\x00\x00\x00'        // Header size (=40 bytes)
-        + width                     // Width in pixels
-        + height                    // Height in pixels
-        + '\x01\x00'                // Number of color planes (1)
-        + '\x18\x00'                // 24 bits per pixel
-
-        + '\x00\x00\x00\x00'        // No compression (0)
-        + (width * height)          // Size of the raw bitmap data (bytes)
-        + '\x13\x0B\x00\x00'        // Horizontal resolution (pixels per metre, signed integer), 2835 dpm = 72 dpi
-        + '\x13\x0B\x00\x00'        // Vertical resolution, 2835 dpm = 72 dpi
-        + '\x00\x00\x00\x00'        // Number of colors in the palette (keep 0 for default 2^bpp)
-        + '\x00\x00\x00\x00'        // Important colors (0 = every color is important)
-        + 'binary data...';
-
-
-    let buffer = new ArrayBuffer(24);
-    // ... read the data into the buffer ...
-    let idView = new Uint32Array(buffer, 0, 1);
-    let usernameView = new Uint8Array(buffer, 4, 16);
-    let amountDueView = new Float32Array(buffer, 20, 1);
-
-
     // Bits per pixel
     const bpp           = 24;
-    let dataSize        = width * height * (bpp / 8 | 0);
+    //let dataSize        = width * height * (bpp / 8 | 0);
+
+    // https://en.wikipedia.org/wiki/BMP_file_format
     // Each row in the Pixel array is padded to a multiple of 4 bytes in size
     let rowSize         = Math.floor( (bpp * width + 31) / 32 ) * 4;
     let pixelArraySize  = rowSize * height;
 
-    let BMP = new DataView(new ArrayBuffer(54));
     // Bitmap file header
-    BMP.setString(0, 'BM');                         // Windows Bitmap
-    BMP.setUint32(2, pixelArraySize + 54, true);    // File size (bytes): W × H + headers (=54 bytes)
-    BMP.setUint16(6, 0, true);                      // Reserved
-    BMP.setUint16(8, 0, true);                      // Reserved
+    'BM'.split('').map( (v, i) => {
+        BMP.setUint8(i, v.charCodeAt(0));
+    });
+    BMP.setUint32(2,  pixelArraySize + 54, true);   // File size (bytes): pixel array size + headers (=54 bytes)
+    BMP.setUint16(6,  0, true);                     // Reserved
+    BMP.setUint16(8,  0, true);                     // Reserved
     BMP.setUint32(10, 54, true);                    // Pixel array offset (=54 bytes)
+
     // DIB header, Windows BITMAPINFOHEADER
     BMP.setUint32(14, 40, true);                    // DIB header size (=40 bytes)
     BMP.setUint32(18, width, true);                 // Width in pixels
@@ -144,7 +125,7 @@ process.on('unhandledRejection', error => {
     BMP.setUint16(26, 1, true);                     // Number of color planes (1)
     BMP.setUint16(28, bpp, true);                   // Bits per pixel
     BMP.setUint32(30, 0, true);                     // No compression (0)
-    BMP.setUint32(34, pixelArraySize, true);        // Size of the raw bitmap data (bytes) including padding (!)
+    BMP.setUint32(34, pixelArraySize, true);        // Size of the raw bitmap data (bytes) including rows padding
     BMP.setUint32(38, 2835, true);                  // Horizontal resolution (pixels per metre, signed integer), 2835 dpm = 72 dpi
     BMP.setUint32(42, 2835, true);                  // Vertical resolution, 2835 dpm = 72 dpi
     BMP.setUint32(46, 0, true);                     // Number of colors in the palette (keep 0 for default 2^bpp)
@@ -159,37 +140,27 @@ process.on('unhandledRejection', error => {
     for (let y = height - 1; y >= 0; y--) {
         for (let x = 0; x < width; x++) {
             //let pixelData = data[y][x];
+
             let pixelData = 0;
-            bmpData.setUint24(i, pixelData);
+
+            bmpData.setUint8(i,       0); // B
+            bmpData.setUint8(i + 1,   0); // G
+            bmpData.setUint8(i + 2, 255); // R
+
             i += byesPerPixel;
         }
         i = rowSize * (height - y);
     }
 
-    //bmpData.setUint8ClampedArray(...);
+    //console.log(BMP.buffer.byteLength + bmpData.buffer.byteLength, 'bmp length');
 
+    let buffer = Buffer.concat([
+        Buffer.from(BMP.buffer),
+        Buffer.from(bmpData.buffer)
+    ]);
 
-
-    //
-    // function parseBMP(arrayBuffer) {
-    //     var stream = new DataStream(arrayBuffer, 0,
-    //         DataStream.LITTLE_ENDIAN);
-    //     var header = stream.readUint8Array(2);
-    //     var fileSize = stream.readUint32();
-    //     // Skip the next two 16-bit integers
-    //     stream.readUint16();
-    //     stream.readUint16();
-    //     var pixelOffset = stream.readUint32();
-    //     // Now parse the DIB header
-    //     var dibHeaderSize = stream.readUint32();
-    //     var imageWidth = stream.readInt32();
-    //     var imageHeight = stream.readInt32();
-    //     // ...
-    // }
-
-
-
-
+    let outFile = __dirname + '/test.bmp';
+    fs.writeFileSync(outFile, buffer);
 
 
 })();
