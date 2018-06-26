@@ -15,12 +15,11 @@ process.on('unhandledRejection', error => {
 
 
 (async function () {
-    return;
-
 
     // If current file is 123.js, will read file 123.txt as input
     const inputFile = __dirname + '/' + path.basename(__filename, '.js') + '.txt';
     const outputFile = __dirname + '/' + path.basename(__filename, '.js') + '-out.txt';
+    const outputBmp = __dirname + '/' + path.basename(__filename, '.js') + '-out.bmp';
     let data = await fs.readFileSync(inputFile, 'utf8');
 
     data = data.split("\n");
@@ -56,17 +55,18 @@ process.on('unhandledRejection', error => {
             for (let i = x1; i <= x2; i++) {
                 switch (cmd) {
                     case 'on':
-                        lights[i][j] = true;
+                        lights[j][i] = true;
                         break;
                     case 'off':
-                        lights[i][j] = false;
+                        lights[j][i] = false;
                         break;
                     case 'toggle':
-                        lights[i][j] = !lights[i][j];
+                        lights[j][i] = !lights[j][i];
                         break;
                 }
             }
         }
+
     });
 
     // Count lit lights
@@ -78,26 +78,17 @@ process.on('unhandledRejection', error => {
     console.log(countLit, 'how many lights are lit');
 
 
-    lights = lights.map(line => {
-
-        return line.map(light => +light).join('');
-
-        // return line.reduce((acc, light) => {
-        //     if (light) {
-        //         return acc + '*';
-        //     }
-        //     return acc + '_';
-        // }, '');
-
-    }).join("\n");
-
-
-    fs.writeFile(outputFile, lights, function(err) {
-        if(err) {
-            return console.log(err);
-        }
-        console.log("The file was saved!");
-    });
+    // let lightsTxt = lights.map(
+    //     line => line.map(light => +light).join('')
+    // ).join("\n");
+    //
+    //
+    // fs.writeFile(outputFile, lightsTxt, function(err) {
+    //     if(err) {
+    //         return console.log(err);
+    //     }
+    //     console.log('Result file was saved!');
+    // });
 
 
     // Bits per pixel
@@ -108,6 +99,8 @@ process.on('unhandledRejection', error => {
     // Each row in the Pixel array is padded to a multiple of 4 bytes in size
     let rowSize         = Math.floor( (bpp * width + 31) / 32 ) * 4;
     let pixelArraySize  = rowSize * height;
+
+    let BMP = new DataView(new ArrayBuffer(54));
 
     // Bitmap file header
     'BM'.split('').map( (v, i) => {
@@ -139,13 +132,12 @@ process.on('unhandledRejection', error => {
     // From bottom row to the top
     for (let y = height - 1; y >= 0; y--) {
         for (let x = 0; x < width; x++) {
-            //let pixelData = data[y][x];
 
-            let pixelData = 0;
+            let pixelData = lights[y][x] ? 255 : 0;
 
-            bmpData.setUint8(i,       0); // B
-            bmpData.setUint8(i + 1,   0); // G
-            bmpData.setUint8(i + 2, 255); // R
+            bmpData.setUint8(i,     pixelData); // B
+            bmpData.setUint8(i + 1, pixelData); // G
+            bmpData.setUint8(i + 2, pixelData); // R
 
             i += byesPerPixel;
         }
@@ -159,8 +151,6 @@ process.on('unhandledRejection', error => {
         Buffer.from(bmpData.buffer)
     ]);
 
-    let outFile = __dirname + '/test.bmp';
-    fs.writeFileSync(outFile, buffer);
-
+    fs.writeFileSync(outputBmp, buffer);
 
 })();
