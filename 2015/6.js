@@ -20,7 +20,7 @@ process.on('unhandledRejection', error => {
     const inputFile = __dirname + '/' + path.basename(__filename, '.js') + '.txt';
     const outputFile = __dirname + '/' + path.basename(__filename, '.js') + '-out.txt';
     const outputBmp = __dirname + '/' + path.basename(__filename, '.js') + '-out.bmp';
-    let data = await fs.readFileSync(inputFile, 'utf8');
+    let data = fs.readFileSync(inputFile, 'utf8');
 
     data = data.split("\n");
 

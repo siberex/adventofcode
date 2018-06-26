@@ -11,7 +11,8 @@ process.on('unhandledRejection', error => {
 (async function () {
     // If current file is 123.js, will read file 123.txt as input
     const inputFile = __dirname + '/' + path.basename(__filename, '.js') + '.txt';
-    let data = await fs.readFileSync(inputFile, 'utf8');
+    const outputFile = __dirname + '/' + path.basename(__filename, '.js') + '-out.txt';
+    let data = fs.readFileSync(inputFile, 'utf8');
 
     console.log(data);
     // ...
