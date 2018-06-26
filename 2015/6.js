@@ -27,10 +27,10 @@ process.on('unhandledRejection', error => {
     let matchRe = /^(?:turn )?(on|off|toggle) (\d+),(\d+) through (\d+),(\d+)$/;
 
 
-    // Fill array 1000 × 1000 with values (false)
+    // Fill array 1000 × 1000 with values (0)
     let lights = Array.from(
         Array(height),
-        () => Array.from(Array(width), () => false)
+        () => Array.from(Array(width), () => 0)
     );
 
     // Parse commands
@@ -55,13 +55,19 @@ process.on('unhandledRejection', error => {
             for (let i = x1; i <= x2; i++) {
                 switch (cmd) {
                     case 'on':
-                        lights[j][i] = true;
+                        // lights[j][i] = true;
+                        lights[j][i]++;
                         break;
                     case 'off':
-                        lights[j][i] = false;
+                        // lights[j][i] = false;
+                        lights[j][i]--;
+                        if (lights[j][i] < 0) {
+                            lights[j][i] = 0;
+                        }
                         break;
                     case 'toggle':
-                        lights[j][i] = !lights[j][i];
+                        //lights[j][i] = !lights[j][i];
+                        lights[j][i]+=2;
                         break;
                 }
             }
@@ -70,12 +76,25 @@ process.on('unhandledRejection', error => {
     });
 
     // Count lit lights
-    let countLit = lights.reduce(
+    let totalBrightness = lights.reduce(
         (sum, line) => line.reduce( (sum, pixel) => pixel ? sum + +pixel : sum, sum),
         0
     );
 
-    console.log(countLit, 'how many lights are lit');
+    console.log(totalBrightness, 'Total brightness');
+
+    let maxBrightness = lights.reduce(
+        (max, line) => Math.max(max, Math.max(...line)),
+        0
+    );
+
+    let minBrightness = lights.reduce(
+        (min, line) => Math.min(min, Math.min(...line)),
+        0
+    );
+
+    console.log(maxBrightness, 'MAX brightness');
+    console.log(minBrightness, 'MIN brightness');
 
 
     // let lightsTxt = lights.map(
@@ -133,7 +152,12 @@ process.on('unhandledRejection', error => {
     for (let y = height - 1; y >= 0; y--) {
         for (let x = 0; x < width; x++) {
 
-            let pixelData = lights[y][x] ? 255 : 0;
+            //maxBrightness = 255
+            //lights[y][x] = ?
+
+            let pixelData = (lights[y][x] / maxBrightness * 255) | 0;
+
+            //let pixelData = lights[y][x] ? 255 : 0;
 
             bmpData.setUint8(i,     pixelData); // B
             bmpData.setUint8(i + 1, pixelData); // G
