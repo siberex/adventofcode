@@ -73,7 +73,7 @@ process.on('unhandledRejection', error => {
         return wires[wire];
     });
 
-    console.log( 'Wires count: ' + Object.keys(wires).length );
+    console.log( Object.keys(wires).length, 'Wires count' );
 
 
     function applyCmd(cmd, arg1, arg2) {
@@ -123,6 +123,6 @@ process.on('unhandledRejection', error => {
 
     let result = applyWiring('a');
 
-    console.log(result);
+    console.log(result, 'Wire a value');
 
 })();
