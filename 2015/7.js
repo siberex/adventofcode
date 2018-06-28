@@ -75,6 +75,8 @@ process.on('unhandledRejection', error => {
 
     console.log( Object.keys(wires).length, 'Wires count' );
 
+    // Part 2
+    wires['b'] = 956;
 
     function applyCmd(cmd, arg1, arg2) {
         if (typeof arg1 !== 'undefined' && isNaN(arg1)) {
