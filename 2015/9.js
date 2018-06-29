@@ -73,7 +73,7 @@ class Graph {
             if ( this.edges.has(fromVertex) ) {
                 this.edges.set(
                     fromVertex,
-                    this.edges.get(from)
+                    this.edges.get(fromVertex)
                         .filter(edge => edge.to !== to)
                 );
             }
@@ -82,7 +82,7 @@ class Graph {
 
     getNearest(from) {
 
-        return this.edges.get(from).reduce((acc, val) => {
+        let nearest = this.edges.get(from).reduce((acc, val) => {
             if (acc === null) {
                 return val;
             }
@@ -94,7 +94,19 @@ class Graph {
             return acc;
         }, null);
 
+        if (nearest === null) {
+            nearest = {to: null, weight: Infinity};
+        }
+
+        return nearest;
     } // getNearest
+
+    clone() {
+        let graph = new this.constructor();
+        graph.vertices = new Set(this.vertices);
+        graph.edges = new Map(this.edges);
+        return graph;
+    } // clone
 
 } // Graph
 
@@ -135,8 +147,27 @@ class Graph {
     //console.log(data[2]);
 
 
-    let start = 'AlphaCentauri';
-    console.log(cities.getNearest(start), 'closest');
+    for (let startingCity of cities.vertices) {
+        let citiesCopy = cities.clone();
+
+        let next = startingCity;
+        let sum = 0;
+
+        while (citiesCopy.vertices.size) {
+            let {to, weight} = citiesCopy.getNearest(next);
+
+            if (to === null) {
+                break;
+            }
+
+            citiesCopy.deleteVertex(next);
+            next = to;
+            sum += weight;
+            //console.log(to, weight);
+        }
+
+        console.log(sum, startingCity);
+    }
 
 
 })();
