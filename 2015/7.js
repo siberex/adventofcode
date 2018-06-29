@@ -16,9 +16,6 @@ process.on('unhandledRejection', error => {
 
     data = data.split("\n");
 
-    let testIndex = 1;
-    //console.log(data[testIndex]);
-
     let matchRe = /^(.+) -> ([a-z]+)$/;
     let matchReCmd = {
         'and'       : /^([a-z]+|\d+) AND ([a-z]+|\d+)$/,
@@ -76,7 +73,8 @@ process.on('unhandledRejection', error => {
     console.log( Object.keys(wires).length, 'Wires count' );
 
     // Part 2
-    wires['b'] = 956;
+    let wires2 = {...wires};
+    wires2['b'] = 956;
 
     function applyCmd(cmd, arg1, arg2) {
         if (typeof arg1 !== 'undefined' && isNaN(arg1)) {
@@ -125,6 +123,10 @@ process.on('unhandledRejection', error => {
 
     let result = applyWiring('a');
 
-    console.log(result, 'Wire a value');
+    wires = wires2;
+    let result2 = applyWiring('a');
+
+    console.log(result, 'Wire ‘a‘ value (Part 1)');
+    console.log(result2, 'Wire ‘a’ value (Part 2)');
 
 })();
