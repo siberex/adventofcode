@@ -6,6 +6,8 @@ Just a repo with my solutions for [adventofcode.com](http://adventofcode.com)
 
 `2015/6.js` — BMP generation using `ArrayBuffer`: https://gist.github.com/siberex/9b843d5f3b0c573f6d3c4f4ca7205f73
 
+`2015/9.js` — Graph implementation
+
 
 ### JS stuff to remember
 
