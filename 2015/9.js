@@ -26,6 +26,11 @@ class Graph {
         if ( this.vertices.has(name) ) {
             this.vertices.delete(name);
 
+            if ( this.edges.has(name) ) {
+                this.edges.delete(name);
+            }
+
+            this.deleteDirectedEdge(null, name);
         }
         return this.vertices.size;
     }
@@ -33,12 +38,12 @@ class Graph {
     addEdge(from, to, weight) {
         this.addDirectedEdge(from, to, weight);
         this.addDirectedEdge(to, from, weight);
-    }
+    } // addEdge
 
     deleteEdge(from, to) {
         this.deleteDirectedEdge(from, to);
         this.deleteDirectedEdge(to, from);
-    }
+    } // deleteEdge
 
     addDirectedEdge(from, to, weight = Infinity) {
         if ( !this.vertices.has(from) ) {
@@ -55,15 +60,41 @@ class Graph {
             to      : to,
             weight  : weight
         });
-    }
+    } // addDirectedEdge
 
-    deleteDirectedEdge(from, to) {
-        this.edges.set(
-            from,
-            this.edges.get(from)
-                .filter(edge => edge.to !== to)
-        );
-    }
+    deleteDirectedEdge(from = null, to) {
+        let fromVertices = this.vertices;
+
+        if (from !== null) {
+            fromVertices = [from];
+        }
+
+        for (let fromVertex of fromVertices) {
+            if ( this.edges.has(fromVertex) ) {
+                this.edges.set(
+                    fromVertex,
+                    this.edges.get(from)
+                        .filter(edge => edge.to !== to)
+                );
+            }
+        }
+    } // deleteDirectedEdge
+
+    getNearest(from) {
+
+        return this.edges.get(from).reduce((acc, val) => {
+            if (acc === null) {
+                return val;
+            }
+
+            if (acc.weight > val.weight) {
+                return val;
+            }
+
+            return acc;
+        }, null);
+
+    } // getNearest
 
 } // Graph
 
@@ -77,7 +108,7 @@ class Graph {
     data = data.split("\n");
 
 
-    let cities = {};
+    let cities = new Graph();
 
     let matchRe = /^(.+) to (.+) = (\d+)$/;
 
@@ -96,68 +127,16 @@ class Graph {
         let [a, b, dist] = res;
         dist = dist|0;
 
-        // if (cities[a]) {
-        //     cities[a][b] = dist;
-        // } else {
-        //     cities[a] = {[b] : dist};
-        // }
-        //
-        // if (cities[b]) {
-        //     cities[b][a] = dist;
-        // } else {
-        //     cities[b] = {[a] : dist};
-        // }
-
-        if (!cities[a]) {
-            cities[a] = [];
-        }
-        cities[a].push({name: b, dist: dist});
-
-        if (!cities[b]) {
-            cities[b] = [];
-        }
-        cities[b].push({name: a, dist: dist});
+        cities.addEdge(a, b, dist);
 
         return res;
     });
 
-
     //console.log(data[2]);
 
-    // console.log( new Map( Object.entries( { ...cities } ) ) );
 
-    //Object.keys(cities).map(start => {
-
-        // Clone cities graph
-        // let graph = { ...cities };
-        let citiesToVisit = new Map( Object.entries(cities) );
-
-        //while (citiesToVisit.size) {
-            //citiesToVisit.delete()
-        //}
-
-        let start = 'AlphaCentauri';
-
-        //console.log( citiesToVisit.get(start) );
-
-        // [{name: 'a', dist: 5}, {name: 'b', dist: 1}] => {name: 'b', dist: 1}
-
-        let nextClosest = citiesToVisit.get(start).reduce((acc, val) => {
-            if (acc === null) {
-                return val;
-            }
-
-            if (acc.dist > val.dist) {
-                return val;
-            }
-
-            return acc;
-        }, null);
-
-        console.log(nextClosest, 'closest');
-
-    //});
-
+    let start = 'AlphaCentauri';
+    console.log(cities.getNearest(start), 'closest');
 
 
 })();
