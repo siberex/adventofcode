@@ -81,7 +81,6 @@ class Graph {
     } // deleteDirectedEdge
 
     getNearest(from) {
-
         let nearest = this.edges.get(from).reduce((acc, val) => {
             if (acc === null) {
                 return val;
@@ -100,6 +99,26 @@ class Graph {
 
         return nearest;
     } // getNearest
+
+    getFurthest(from) {
+        let furthest = this.edges.get(from).reduce((acc, val) => {
+            if (acc === null) {
+                return val;
+            }
+
+            if (acc.weight < val.weight) {
+                return val;
+            }
+
+            return acc;
+        }, null);
+
+        if (furthest === null) {
+            furthest = {to: null, weight: Infinity};
+        }
+
+        return furthest;
+    } // getFurthest
 
     clone() {
         let graph = new this.constructor();
@@ -146,7 +165,8 @@ class Graph {
 
     //console.log(data[2]);
 
-
+    // Part 1
+    let distances = [];
     for (let startingCity of cities.vertices) {
         let citiesCopy = cities.clone();
 
@@ -166,8 +186,36 @@ class Graph {
             //console.log(to, weight);
         }
 
-        console.log(sum, startingCity);
+        distances.push(sum);
+        //console.log(sum, startingCity);
     }
+    console.log(Math.min(...distances), 'Part 1');
+
+    // Part 2
+    distances = [];
+    for (let startingCity of cities.vertices) {
+        let citiesCopy = cities.clone();
+
+        let next = startingCity;
+        let sum = 0;
+
+        while (citiesCopy.vertices.size) {
+            let {to, weight} = citiesCopy.getFurthest(next);
+
+            if (to === null) {
+                break;
+            }
+
+            citiesCopy.deleteVertex(next);
+            next = to;
+            sum += weight;
+            //console.log(to, weight);
+        }
+
+        distances.push(sum);
+    }
+
+    console.log(Math.max(...distances), 'Part 2');
 
 
 })();
