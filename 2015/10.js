@@ -11,8 +11,6 @@ process.on('unhandledRejection', error => {
 
 (async function () {
 
-    let input = '1113222113';
-
     // https://en.wikipedia.org/wiki/Look-and-say_sequence
     // https://oeis.org/A005150
 
@@ -26,16 +24,30 @@ process.on('unhandledRejection', error => {
     // 1211 → 111221 (one 1, one 2, two 1s)
     // 111221 → 312211 (three 1s, two 2s, one 1)
 
-
     function say(s) {
-
-        group(s)
-
+        return group(s).map(v => v.length + '' + v[0]).join('');
     }
 
+    // Test:
+    let input = '1';
+    for (let i = 0; i < 14; i++) {
+        input = say(input);
+    }
+
+    console.log(input === '311311222113111231131112132112311321322112111312211312111322212311322113212221');
 
 
 
+    input = '1113222113';
+    for (let i = 0; i < 40; i++) {
+        input = say(input);
+    }
+    console.log(input.length, 'Part 1');
 
+    input = '1113222113';
+    for (let i = 0; i < 50; i++) {
+        input = say(input);
+    }
+    console.log(input.length, 'Part 2');
 
 })();
