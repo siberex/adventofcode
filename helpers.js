@@ -182,16 +182,16 @@ class Graph {
     } // getHeaviest
 
 
-    getEdgeWeight(from ,to) {
+    getEdgeWeight(from, to, unknown = Infinity) {
         if ( !this.edges.has(from) ) {
-            return Infinity;
+            return unknown;
         }
 
         let edges = this.edges.get(from)
             .filter(edge => edge.to === to);
 
         if (!edges.length) {
-            return Infinity;
+            return unknown;
         }
 
         return edges[0].weight;

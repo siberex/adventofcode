@@ -19,6 +19,7 @@ process.on('unhandledRejection', error => {
 
 
     let persons = new Graph();
+    let personsWithMe = new Graph();
 
     let matchRe = /^(\w+) would (lose|gain) (\d+) happiness units by sitting next to (\w+)\.$/;
 
@@ -45,41 +46,63 @@ process.on('unhandledRejection', error => {
 
         // ['Carol', 'Alice', -62]
         persons.addDirectedEdge(a, b, units);
+
+        personsWithMe.addDirectedEdge(a, b, units);
+        personsWithMe.addDirectedEdge(a, 'ME', 0);
+        personsWithMe.addDirectedEdge(b, 'ME', 0);
+
         return [a, b, units];
     });
 
 
     //console.log(persons.getEdgeWeight('Alice', 'David'));
 
-    let names = [...persons.vertices.values()];
-    let seats = names.length;
-    let variations = permute(names);
 
-    variations = variations.map(configuration => {
+    function getMaximumHappiness(persons) {
 
-        let happiness = 0;
+        let names = [...persons.vertices.values()];
+        let seats = names.length;
+        let variations = permute(names);
 
-        for (let i = 0; i < configuration.length; i++) {
+        //console.log(`Permutations count for ${names.length} elements is n! = ${variations.length}`);
 
-            let current = configuration[i];
-            let prev = configuration[i - 1 < 0 ? seats - 1 : i - 1];
-            let next = configuration[(i + 1) % seats];
+        return variations.map(configuration => {
 
-            // if (persons.getEdgeWeight(current, prev) === Infinity) {
-            //     console.log([current, prev]);
-            // }
+            let happiness = 0;
 
-            happiness +=
-                persons.getEdgeWeight(current, prev)
-                + persons.getEdgeWeight(current, next);
+            for (let i = 0; i < configuration.length; i++) {
 
-        }
+                let current = configuration[i];
+                let prev = configuration[i - 1 < 0 ? seats - 1 : i - 1];
+                let next = configuration[(i + 1) % seats];
 
-        //console.log(configuration, happiness);
+                // if (persons.getEdgeWeight(current, prev) === Infinity) {
+                //     console.log([current, prev]);
+                // }
 
-        return happiness;
-    });
+                happiness +=
+                    persons.getEdgeWeight(current, prev, 0)
+                    + persons.getEdgeWeight(current, next, 0);
 
-    console.log( Math.max(...variations), 'Part 1' );
+            }
+
+            //console.log(configuration, happiness);
+
+            return happiness;
+        });
+
+    }
+
+    console.log(
+        getMaximumHappiness(persons)
+            .reduce( (acc, val) => Math.max(acc, val), -Infinity ),
+        'Part 1'
+    );
+
+    console.log(
+        getMaximumHappiness(personsWithMe)
+            .reduce( (acc, val) => Math.max(acc, val), -Infinity ),
+        'Part 2'
+    );
 
 })();
