@@ -61,11 +61,15 @@ function group(input, isGroup = null) {
  * Usage:
  * let g = new Graph();
  * g.addEdge('a', 'b', 10)
- *  .addEdge('a', 'c', 5)
+ *  .addDirectedEdge('a', 'c', 5)
+ *  .addDirectedEdge('c', 'a', 100)
  *  .addEdge('a', 'd', 20);
  *
  * g.getLightest('a');
  *  {to: 'c', weight: 5}
+ *
+ * g.getEdgeWeight('d', 'a');
+ *  20
  *
  */
 class Graph {
@@ -176,6 +180,23 @@ class Graph {
     getHeaviest(from) {
         return this.getEdgeBy(from, (a,b) => (a.weight < b.weight));
     } // getHeaviest
+
+
+    getEdgeWeight(from ,to) {
+        if ( !this.edges.has(from) ) {
+            return Infinity;
+        }
+
+        let edges = this.edges.get(from)
+            .filter(edge => edge.to === to);
+
+        if (!edges.length) {
+            return Infinity;
+        }
+
+        return edges[0].weight;
+    } // getEdgeWeight
+
 
     clone() {
         let graph = new this.constructor();
