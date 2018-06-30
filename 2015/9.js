@@ -51,7 +51,7 @@ process.on('unhandledRejection', error => {
         let sum = 0;
 
         while (citiesCopy.vertices.size) {
-            let {to, weight} = citiesCopy.getNearest(next);
+            let {to, weight} = citiesCopy.getLightest(next);
 
             if (to === null) {
                 break;
@@ -77,7 +77,7 @@ process.on('unhandledRejection', error => {
         let sum = 0;
 
         while (citiesCopy.vertices.size) {
-            let {to, weight} = citiesCopy.getFurthest(next);
+            let {to, weight} = citiesCopy.getHeaviest(next);
 
             if (to === null) {
                 break;

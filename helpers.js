@@ -125,45 +125,41 @@ class Graph {
         }
     } // deleteDirectedEdge
 
-    getNearest(from) {
-        let nearest = this.edges.get(from).reduce((acc, val) => {
+
+    getEdgeBy(from, comparison = null) {
+        if (typeof comparison !== 'function') {
+            comparison = function(a, b) {
+                return a.weight > b.weight;
+            }
+        }
+
+        let edge = this.edges.get(from).reduce((acc, val) => {
             if (acc === null) {
                 return val;
             }
 
-            if (acc.weight > val.weight) {
+            if ( comparison(acc, val) ) {
                 return val;
             }
 
             return acc;
         }, null);
 
-        if (nearest === null) {
-            nearest = {to: null, weight: Infinity};
+        if (edge === null) {
+            edge = {to: null, weight: Infinity};
         }
 
-        return nearest;
-    } // getNearest
+        return edge;
+    } // getEdgeBy
 
-    getFurthest(from) {
-        let furthest = this.edges.get(from).reduce((acc, val) => {
-            if (acc === null) {
-                return val;
-            }
 
-            if (acc.weight < val.weight) {
-                return val;
-            }
+    getLightest(from) {
+        return this.getEdgeBy(from);
+    } // getLightest
 
-            return acc;
-        }, null);
-
-        if (furthest === null) {
-            furthest = {to: null, weight: Infinity};
-        }
-
-        return furthest;
-    } // getFurthest
+    getHeaviest(from) {
+        return this.getEdgeBy(from, (a,b) => (a.weight < b.weight));
+    } // getHeaviest
 
     clone() {
         let graph = new this.constructor();
