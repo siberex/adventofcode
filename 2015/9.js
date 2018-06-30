@@ -42,57 +42,40 @@ process.on('unhandledRejection', error => {
     });
 
 
-    // Part 1
-    let distances = [];
-    for (let startingCity of cities.vertices) {
-        let citiesCopy = cities.clone();
+    function getPathWeightsForEachVertex(graph, comparisonFn = null) {
+        let distances = new Map();
 
-        let next = startingCity;
-        let sum = 0;
+        for (let startingVertex of graph.vertices) {
+            let graphCopy = graph.clone();
 
-        while (citiesCopy.vertices.size) {
-            let {to, weight} = citiesCopy.getLightest(next);
+            let next = startingVertex;
+            let sum = 0;
 
-            if (to === null) {
-                break;
+            while (graphCopy.vertices.size) {
+                let {to, weight} = graphCopy.getEdgeBy(next, comparisonFn);
+
+                if (to === null) {
+                    break;
+                }
+
+                graphCopy.deleteVertex(next);
+                next = to;
+                sum += weight;
             }
 
-            citiesCopy.deleteVertex(next);
-            next = to;
-            sum += weight;
-            //console.log(to, weight);
+            distances.set(startingVertex, sum);
         }
 
-        distances.push(sum);
-        //console.log(sum, startingCity);
+        return distances;
     }
-    console.log(Math.min(...distances), 'Part 1');
+
+
+    // Part 1
+    let shortest = getPathWeightsForEachVertex(cities, (a,b) => (a.weight > b.weight));
+    console.log( Math.min(...shortest.values() ), 'Part 1');
 
     // Part 2
-    distances = [];
-    for (let startingCity of cities.vertices) {
-        let citiesCopy = cities.clone();
-
-        let next = startingCity;
-        let sum = 0;
-
-        while (citiesCopy.vertices.size) {
-            let {to, weight} = citiesCopy.getHeaviest(next);
-
-            if (to === null) {
-                break;
-            }
-
-            citiesCopy.deleteVertex(next);
-            next = to;
-            sum += weight;
-            //console.log(to, weight);
-        }
-
-        distances.push(sum);
-    }
-
-    console.log(Math.max(...distances), 'Part 2');
-
+    let longest = getPathWeightsForEachVertex(cities, (a,b) => (a.weight < b.weight));
+    console.log(Math.max( ...longest.values() ), 'Part 2');
 
 })();
