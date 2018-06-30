@@ -13,8 +13,16 @@ process.on('unhandledRejection', error => {
     const inputFile = __dirname + '/' + path.basename(__filename, '.js') + '.txt';
     const outputFile = __dirname + '/' + path.basename(__filename, '.js') + '-out.txt';
     let data = fs.readFileSync(inputFile, 'utf8');
+    data = data.split("\n");
 
-    console.log(data);
+
+    data.map(line => {
+
+        console.log(line);
+        // ...
+
+    });
+
     // ...
 
 })();
