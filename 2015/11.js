@@ -43,13 +43,38 @@ process.on('unhandledRejection', error => {
 
     // 1. Three consecutive letters constraint check.
     //    'hijklmmn' is ok (ijk).
-    function checkConsecutive(input) {
+    function haveThreeConsecutive(input) {
+        if (input.length < 3) {
+            return false;
+        }
 
-    }
+        // 'abc' → [97, 98, 99]
+        let chars = input.split('').map( ch => ch.charCodeAt(0) );
+
+        let consecutive = 1;
+        // Char code of the first character
+        let prev = chars[0];
+
+        for (let i = 1; i < chars.length; i++) {
+            let code = chars[i];
+
+            if (prev + 1 === code) {
+                consecutive++;
+                if (consecutive === 3) {
+                    return true;
+                }
+            } else {
+                consecutive = 1;
+            }
+            prev = code;
+        }
+
+        return false;
+    } // haveThreeConsecutive
 
     let confusingRegex = /[iol]/;
     // 2. Check confusing letters constraint: no i, o, or l.
-    function checkNoConfusing(input) {
+    function haveNoConfusing(input) {
         return !confusingRegex.test(input);
     }
 
@@ -58,17 +83,28 @@ process.on('unhandledRejection', error => {
     //    like aa, bb, or zz. Examples:
     //      'abbceffg' is ok.
     //      'abbcegjk' is not ok.
-    function checkPairs(input) {
+    function haveTwoDifferentPairs(input) {
         return twoDoublesRegex.test(input);
     }
 
 
-    console.log(
-        incrementLetter(input)
-    );
 
+    function getNewPassword(input) {
+        while (
+            !haveThreeConsecutive(input) ||
+            !haveNoConfusing(input) ||
+            !haveTwoDifferentPairs(input)
+        ) {
+            input = incrementLetter(input);
+        }
+        return input;
+    }
 
+    // Part 1
+    console.log( input = getNewPassword(input), 'Part 1' );
 
-
+    // Part 2
+    input = incrementLetter(input);
+    console.log( getNewPassword(input), 'Part 2' );
 
 })();
