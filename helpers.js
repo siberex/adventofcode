@@ -54,6 +54,20 @@ function group(input, isGroup = null) {
 } // group
 
 
+/**
+ * Weighted graph implementation.
+ * Directed and undirected.
+ *
+ * Usage:
+ * let g = new Graph();
+ * g.addEdge('a', 'b', 10)
+ *  .addEdge('a', 'c', 5)
+ *  .addEdge('a', 'd', 20);
+ *
+ * g.getLightest('a');
+ *  {to: 'c', weight: 5}
+ *
+ */
 class Graph {
     constructor() {
         this.vertices = new Set();
@@ -83,6 +97,7 @@ class Graph {
     addEdge(from, to, weight) {
         this.addDirectedEdge(from, to, weight);
         this.addDirectedEdge(to, from, weight);
+        return this;
     } // addEdge
 
     deleteEdge(from, to) {
@@ -105,6 +120,7 @@ class Graph {
             to      : to,
             weight  : weight
         });
+        return this;
     } // addDirectedEdge
 
     deleteDirectedEdge(from = null, to) {
@@ -171,5 +187,39 @@ class Graph {
 } // Graph
 
 
+/**
+ * Heap's algorithm implementation to get all permutations of array.
+ *
+ * https://en.wikipedia.org/wiki/Heap%27s_algorithm
+ * https://stackoverflow.com/questions/9960908/permutations-in-javascript/37580979#37580979
+ *
+ * @param {array} permutation
+ * @return {*[]}
+ */
+function permute(permutation) {
+    let length = permutation.length,
+        result = [permutation.slice()],
+        c = new Array(length).fill(0),
+        i = 1, k, p;
+
+    while (i < length) {
+        if (c[i] < i) {
+            k = i % 2 && c[i];
+            p = permutation[i];
+            permutation[i] = permutation[k];
+            permutation[k] = p;
+            ++c[i];
+            i = 1;
+            result.push(permutation.slice());
+        } else {
+            c[i] = 0;
+            ++i;
+        }
+    }
+    return result;
+} // permute
+
+
 module.exports.group = group;
 module.exports.Graph = Graph;
+module.exports.permute = permute;
