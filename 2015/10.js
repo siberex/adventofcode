@@ -28,22 +28,23 @@ process.on('unhandledRejection', error => {
         return group(s).map(v => v.length + '' + v[0]).join('');
     }
 
-    // Test:
+    // Test
     let input = '1';
     for (let i = 0; i < 14; i++) {
         input = say(input);
     }
 
-    console.log(input === '311311222113111231131112132112311321322112111312211312111322212311322113212221');
+    console.log(input === '311311222113111231131112132112311321322112111312211312111322212311322113212221', 'Test');
 
 
-
+    // Part 1
     input = '1113222113';
     for (let i = 0; i < 40; i++) {
         input = say(input);
     }
     console.log(input.length, 'Part 1');
 
+    // Part 2
     input = '1113222113';
     for (let i = 0; i < 50; i++) {
         input = say(input);
