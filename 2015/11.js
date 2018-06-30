@@ -2,6 +2,7 @@
 
 const fs    = require('fs')
     , path  = require('path')
+    , group = require('../helpers').group
 ;
 
 process.on('unhandledRejection', error => {
@@ -48,28 +49,10 @@ process.on('unhandledRejection', error => {
             return false;
         }
 
-        // 'abc' → [97, 98, 99]
-        let chars = input.split('').map( ch => ch.charCodeAt(0) );
+        let seqGroups = group(input, (a,b) => a.charCodeAt(0)+1 === b.charCodeAt(0));
+        seqGroups = seqGroups.map(v => v.length);
 
-        let consecutive = 1;
-        // Char code of the first character
-        let prev = chars[0];
-
-        for (let i = 1; i < chars.length; i++) {
-            let code = chars[i];
-
-            if (prev + 1 === code) {
-                consecutive++;
-                if (consecutive === 3) {
-                    return true;
-                }
-            } else {
-                consecutive = 1;
-            }
-            prev = code;
-        }
-
-        return false;
+        return Math.max(...seqGroups) > 2;
     } // haveThreeConsecutive
 
     let confusingRegex = /[iol]/;
