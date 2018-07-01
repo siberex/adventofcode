@@ -47,8 +47,8 @@ process.on('unhandledRejection', error => {
 
     fs.writeFileSync(outputFile, rle);
 
-    console.log('Part 1: Open ' +path.basename(__filename, '.js') + '.rle'+ ' file with Golly');
+    console.log('RLE file saved: ' + path.basename(__filename, '.js') + '.rle');
 
-    console.log('Part 2: Open ' +path.basename(__filename, '.js') + '.lua'+ ' script with Golly (File → Run Script…)');
+    console.log('Now open ' +path.basename(__filename, '.js') + '.lua'+ ' script with Golly (File → Run Script…)');
 
 })();
