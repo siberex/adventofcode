@@ -45,18 +45,20 @@ process.on('unhandledRejection', error => {
     }).filter(v => v !== null);
 
 
-    let firstRun = data.map(deer => {
-        let [name, speed, timeFly, timeRest] = deer;
-        // console.log([name, speed, timeFly, timeRest]);
-
+    function getDist(time, speed, timeFly, timeRest) {
         let segmentDistance = speed * timeFly;
         let segmentTime = timeFly + timeRest;
 
         let dist = Math.floor(time / segmentTime) * segmentDistance;
         dist += Math.min(time % segmentTime, timeFly) * speed;
 
-        //console.log(dist);
         return dist;
+    } // getDist
+
+
+    let firstRun = data.map(deer => {
+        let [name, speed, timeFly, timeRest] = deer;
+        return getDist(time, speed, timeFly, timeRest);
     });
 
     console.log(
@@ -65,11 +67,29 @@ process.on('unhandledRejection', error => {
     );
 
 
+    let points = new Map( data.map(deer => [deer[0], 0]) );
+
     for (let s = 1; s <= time; s++) {
+        let leader = data.map(deer => {
+            let [name, speed, timeFly, timeRest] = deer;
+            return [
+                name,
+                getDist(s, speed, timeFly, timeRest)
+            ];
+        }).reduce(
+            (acc, val) => acc[1] > val[1] ? acc : val,
+            [null, -Infinity]
+        );
 
-
-
+        points.set(
+            leader[0],
+            points.get(leader[0]) + 1
+        );
     }
 
+    console.log(
+        Math.max( ...points.values() ),
+        'Part 2'
+    );
 
 })();
