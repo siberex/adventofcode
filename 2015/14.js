@@ -70,21 +70,28 @@ process.on('unhandledRejection', error => {
     let points = new Map( data.map(deer => [deer[0], 0]) );
 
     for (let s = 1; s <= time; s++) {
-        let leader = data.map(deer => {
+
+        let runners = data.map(deer => {
             let [name, speed, timeFly, timeRest] = deer;
             return [
                 name,
                 getDist(s, speed, timeFly, timeRest)
             ];
-        }).reduce(
-            (acc, val) => acc[1] > val[1] ? acc : val,
-            [null, -Infinity]
-        );
+        });
 
-        points.set(
-            leader[0],
-            points.get(leader[0]) + 1
-        );
+        // If there are multiple reindeer tied for the lead, they each get one point.
+        let leaderDist = runners
+            .map(r=>r[1])
+            .reduce( (acc, val) => Math.max(acc, val), -Infinity );
+
+        let leaders = runners.filter(r => r[1] === leaderDist);
+
+        leaders.map(leader => {
+            points.set(
+                leader[0],
+                points.get(leader[0]) + 1
+            );
+        });
     }
 
     console.log(points);
