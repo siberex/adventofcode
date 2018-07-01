@@ -87,6 +87,8 @@ process.on('unhandledRejection', error => {
         );
     }
 
+    console.log(points);
+
     console.log(
         Math.max( ...points.values() ),
         'Part 2'
