@@ -45,11 +45,10 @@ process.on('unhandledRejection', error => {
     // End of the pattern marker
     rle += '!';
 
-    fs.writeFile(outputFile, rle, err => {
-        if (err) {
-            return console.error(err);
-        }
-        console.log('RLE file was saved!');
-    });
+    fs.writeFileSync(outputFile, rle);
+
+    console.log('Part 1: Open ' +path.basename(__filename, '.js') + '.rle'+ ' file with Golly');
+
+    console.log('Part 2: Open ' +path.basename(__filename, '.js') + '.lua'+ ' script with Golly (File → Run Script…)');
 
 })();
