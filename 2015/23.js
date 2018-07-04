@@ -20,6 +20,8 @@ process.on('unhandledRejection', error => {
 
     let registers = new Map();
 
+    const PART2 = true;
+
     let instructions = data.map(line => {
         if (!line.length) {
             return null;
@@ -35,47 +37,78 @@ process.on('unhandledRejection', error => {
         }
 
         res = res.slice(1);
-        let [instruction, register, value] = res;
+        let [cmd, register, value] = res;
         if (value !== undefined) {
             value = parseInt(value);
         }
 
         if ( register !== undefined && !registers.has(register) ) {
-            registers.add(register, null);
+            registers.set(register, (PART2 && register === 'a') ? 1 : 0);
         }
 
-        res = [instruction, register, value];
+        res = [cmd, register, value];
 
-        console.log(res);
+        //console.log(res);
         return res;
     }).filter(v => v);
 
 
-    let cmd = 'abc';
-    switch (cmd) {
-        case 'hlf':
-            // half register’s current value
-            break;
-        case 'tpl':
-            // triple register’s current value
-            break;
-        case 'inc':
-            // increment register by 1
-            break;
-        case 'jmp':
-            // continue with the instruction offset away relative to itself
-            break;
-        case 'jie':
-            // like jmp, but only jumps if register is even ("jump if even")
-            break;
-        case 'jio':
-            // like jmp, but only jumps if register is 1
-            // ("jump if one", not odd)
-            break;
-        default:
-            // unknown command, exit
+    let i = 0;
 
+    instructionsLoop:
+    while (i < instructions.length) {
+        let [cmd, register, value] = instructions[i];
+
+        //console.log([cmd, register, value]);
+
+        let r = 0;
+        if (register && registers.has(register)) {
+            r = registers.get(register);
+        }
+
+        switch (cmd) {
+            case 'hlf':
+                // half register’s current value
+                registers.set(register, r / 2);
+                i++;
+                break;
+            case 'tpl':
+                // triple register’s current value
+                registers.set(register, r * 3);
+                i++;
+                break;
+            case 'inc':
+                // increment register by 1
+                registers.set(register, r + 1);
+                i++;
+                break;
+            case 'jmp':
+                // continue with the instruction offset away relative to itself
+                i += value;
+                break;
+            case 'jie':
+                // like jmp, but only jumps if register is even ("jump if even")
+                if (r % 2 === 0) {
+                    i += value;
+                } else {
+                    i++;
+                }
+                break;
+            case 'jio':
+                // like jmp, but only jumps if register is 1
+                // ("jump if one", not odd)
+                if (r === 1) {
+                    i += value;
+                } else {
+                    i++;
+                }
+                break;
+            default:
+                // unknown command, exit
+                break instructionsLoop;
+        }
     }
 
+    console.log(registers, PART2 ? 'PART 2' : 'PART 1');
 
 })();
