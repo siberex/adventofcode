@@ -18,6 +18,7 @@ process.on('unhandledRejection', error => {
 
     let matchRe = /^([a-z]{3}) ([a-z])?(?:, )?([+\-]\d+)?$/;
 
+    let registers = new Map();
 
     let instructions = data.map(line => {
         if (!line.length) {
@@ -34,9 +35,19 @@ process.on('unhandledRejection', error => {
         }
 
         res = res.slice(1);
+        let [instruction, register, value] = res;
+        if (value !== undefined) {
+            value = parseInt(value);
+        }
+
+        if ( register !== undefined && !registers.has(register) ) {
+            registers.add(register, null);
+        }
+
+        res = [instruction, register, value];
 
         console.log(res);
-
+        return res;
     }).filter(v => v);
 
 
