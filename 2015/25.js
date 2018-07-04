@@ -50,14 +50,14 @@ process.on('unhandledRejection', error => {
     Example:
     (20151125 * 252533) % 33554393 = 31916031 [1,2]
     (31916031 * 252533) % 33554393 = 18749137 [2,1]
-
      */
 
     console.log(index, 'INDEX');
 
     let value = seed;
     for (let i = 2; i <= index; i++) {
-
+        value = (value * 252533) % 33554393;
     }
 
+    console.log(value, 'VALUE'); // 19980801
 })();
