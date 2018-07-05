@@ -15,14 +15,32 @@ process.on('unhandledRejection', error => {
     let data = fs.readFileSync(inputFile, 'utf8');
     data = data.split("\n");
 
+    let matchRe = /^(\w+)$/;
 
-    data.map(line => {
+    data = data
+    .map(line => {
+        if (!line.length) {
+            return null;
+        }
 
-        console.log(line);
+        let res = matchRe.exec(line);
+        if (!res) {
+            console.error('NOT PARSED: ' + line);
+            return null;
+        }
+
+        res = res.slice(1);
+
+        // ...
+        console.log(res);
         // ...
 
-    });
+        return res;
+    })
+    .filter(v => v);
 
     // ...
+
+    //fs.writeFileSync( outputFile, data.join("\n") );
 
 })();
