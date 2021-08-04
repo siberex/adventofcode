@@ -12,13 +12,19 @@
 import golly as g
 
 g.open("24.rle")
+hashRect = g.getrect()
+dx, dy, w, h = hashRect
 
 steps = set()
-stepHash = g.hash( g.getrect() )
-# steps.add(step)
+stepHash = g.hash( hashRect )
 
 while not stepHash in steps:
-    print(stepHash)
+    #print(stepHash)
     steps.add(stepHash)
     g.step()
-    stepHash = g.hash( g.getrect() )
+    stepHash = g.hash( hashRect )
+
+cells = g.getcells( hashRect )
+
+for x, y in zip(*[iter(cells)]*2):
+    print(x - dx, y - dy)
