@@ -14,11 +14,13 @@ let input = `..#.#
 ...##
 #.###`;
 
+/*
 input = `....#
 #..#.
 #..##
 ..#..
 #....`;
+*/
 
 // http://golly.sourceforge.net/Help/formats.html
 // Birth 1 or 2, Survival 1 → 'B12/S1'
