@@ -9,13 +9,13 @@ const rawInput = await fs.readFile(inputFile, 'utf8');
 
 const matchRe = /^(\w+): capacity (-?\d+), durability (-?\d+), flavor (-?\d+), texture (-?\d+), calories (-?\d+)$/;
 
-let data = rawInput.split('\n').filter(Boolean).map(line => {
+//const re = /(?:(\w+) (-?\d+))+/g;
+//Object.fromEntries([...'PeanutButter: capacity -1, durability 3, flavor 0, texture 0, calories 1'.matchAll(/(?:(\w+) (-?\d+))+/g)].map(v => v.slice(1)))
+
+let data = rawInput.split('\n').map(line => {
     // line = 'PeanutButter: capacity -1, durability 3, flavor 0, texture 0, calories 1'
     let res = matchRe.exec(line);
-    if (!res) {
-        console.error('NOT PARSED: ' + line);
-        return null;
-    }
+    if (!res) return null;
 
     res = res.slice(1);
     //  [ 'PeanutButter', -1, 3, 0, 0, 1 ],
