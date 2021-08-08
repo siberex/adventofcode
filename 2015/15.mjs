@@ -26,3 +26,7 @@ let data = rawInput.split('\n').map(line => {
 }).filter(Boolean);
 
 console.log(data);
+
+//
+// Refer to `15.ipynb` Jupyter notebook for solution
+//
