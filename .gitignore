@@ -1,2 +1,9 @@
+# NodeJS
 node_modules/
 npm-debug.log*
+
+# Python
+venv/
+
+# JetBrains
+.idea/
