@@ -18,4 +18,5 @@ with open(input_filename) as f:
         # print(f'{line:s}: {",".join(digits)}: {numStr:s}')
         numsList.append(int(numStr))
 
-print(functools.reduce(operator.add, numsList)) 
+sum = functools.reduce(operator.add, numsList)
+print(sum)
