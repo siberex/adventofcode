@@ -1,8 +1,8 @@
+import java.io.{FileNotFoundException, IOException}
 import scala.collection.immutable.NumericRange
 import scala.io.Source
-import scala.util.matching.Regex
-import java.io.{FileNotFoundException, IOException}
 import scala.language.strictEquality
+import scala.util.matching.Regex
 
 // val inputFilename = "2023/day5/input.sample.txt"
 val inputFilename = "2023/day5/input.txt"
@@ -15,12 +15,13 @@ type Mapping = {
 }
 */
 class Mapping(val src: Long, val dest: Long, val len: Long):
+    val srcTo = src + len - 1
     
-    def doMapping(x: Long): Option[Long] =
-        if x >= src && x <= src + len - 1 then 
-            Some(dest + (x - src)) 
+    def doMapping(x: Long): Long =
+        if x >= src && x <= srcTo then 
+            dest - src + x
         else
-            None
+            -1
     
     override def toString: String = s"$src → $dest ($len)"
 
@@ -34,14 +35,12 @@ type MapGroup = {
     val maps: List[Mapping]
 }
 */
-class MapGroup(val name: String, val maps: LazyList[Mapping]):
+class MapGroup(val name: String, val maps: List[Mapping]):
 
     def doMapping(mapFrom: Long): Long =
         val mappingRes = maps.map(
                 m => m.doMapping(mapFrom)
-            ).collectFirst {
-                case Some(d) => d 
-            }
+            ).find(x => x != -1)
         // Any source numbers that aren't mapped correspond to the same destination number
         return mappingRes match {
             case Some(mapTo) => mapTo
@@ -56,7 +55,7 @@ object MapGroup:
     def apply(name: String, maps: List[List[Long]]): MapGroup =
         new MapGroup(
             name,
-            maps.map(l => Mapping(l)).to(LazyList)
+            maps.map(l => Mapping(l))
         )
 end MapGroup
 
@@ -132,8 +131,8 @@ def parseInput(input: String): Unit =
         seed => getMappping(seed, mapGroups)
     )
 
-    // println(seeds)
-    // println(seedMappings)
+    // Intermediate output, just for fanciness
+    // seeds.lazyZip(seedMappings).foreach((from, to) => println(s"$from → $to"))
 
     val resultPart1 = seedMappings.min
     println(s"Part1: $resultPart1")
@@ -147,6 +146,7 @@ def parseInput(input: String): Unit =
     // Naive and extremely slow solution
     // Proper one would be to map ranges (splitting source range)
     seedRanges.foreach(range => {
+
         range.foreach(seed => {
             
             val res = getMappping(seed, mapGroups)
