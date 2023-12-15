@@ -1,3 +1,8 @@
+// #![allow(dead_code)]
+// #![allow(unused_variables)]
+
+use once_cell::sync::Lazy;
+use regex_lite::Regex;
 use std::env;
 use std::fs;
 
@@ -5,12 +10,67 @@ use std::fs;
 enum Item {
     Dot,
     Digit(u8),
-    Symbol
+    Symbol,
 }
+
+#[derive(Debug)]
+struct Number {
+    val: u16,
+    row: usize,
+    col: usize,
+    len: usize,
+}
+
+
+// Return all matched numbers from provided line
+fn match_numbers(line: &str, row: usize) -> Vec<Number> {
+    static RE_NUMBERS: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?-u:\d+)").unwrap());
+
+    return RE_NUMBERS.find_iter(line).map(|mat| Number {
+        val: mat.as_str().parse::<u16>().unwrap(),
+        row: row,
+        col: mat.start(),
+        len: mat.len(),
+    }).collect();
+}
+
+
+fn filter_part_numbers(numbers: Vec<Number>, schematic: Vec<Vec<Item>>) -> Vec<Number> {
+    let rows_count = schematic.len();
+    let cols_count = schematic.get(0).unwrap_or(&Vec::<Item>::new()).len();
+
+    return numbers.into_iter()
+        .filter(|num: &Number| -> bool {
+        
+            for i in (num.row as isize - 1) ..= (num.row as isize + 1) {
+                for j in (num.col as isize - 1) ..= (num.col + num.len) as isize {
+                    if i < 0 || j < 0 {
+                        continue;
+                    }
+                    if (i == num.row as isize) && (j >= num.col as isize) && j < (num.col + num.len) as isize {
+                        continue;
+                    }
+                    if i >= rows_count as isize || j >= cols_count as isize {
+                        continue;
+                    }
+        
+                    match schematic[i as usize][j as usize] {
+                        Item::Symbol => return true,
+                        _ => continue,
+                    }
+                }
+            }
+
+            return false;
+        })
+        .collect();
+}
+
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let default_file_input_path = &String::from("input.sample.txt");
+    // let default_file_input_path = &String::from("input.sample.txt");
+    let default_file_input_path = &String::from("input.txt");
     let input_file_path: &String = args.get(1).unwrap_or(default_file_input_path);
 
     println!("Input file: {}", input_file_path);
@@ -19,9 +79,12 @@ fn main() {
         .expect("Should have been able to read the file");
 
     let mut schematic: Vec<Vec<Item>> = Vec::new();
+    let mut numbers: Vec<Number> = Vec::new();
 
-    for (_i, line) in contents.lines().enumerate() {
-        // println!("{}: {}", _i, line);
+    for (row, line) in contents.lines().enumerate() {
+        // println!("{}: {}", row, line);
+
+        numbers.append(&mut match_numbers(line, row));
 
         let mut schematic_line: Vec<Item> = Vec::new();
 
@@ -36,20 +99,15 @@ fn main() {
             }
         }
 
-        schematic.push(schematic_line);        
+        schematic.push(schematic_line);
     }
 
-    // println!("{:?}", schematic);
+    let part_numbers = filter_part_numbers(numbers, schematic);
 
-    for l in schematic {
-        for c in l {
-            // ... do stuff
-        }
-    }
+    // let part_numbers_list: Vec<u16> = part_numbers.into_iter().map(|n| {n.val}).collect();
+    // println!("{:?}", part_numbers_list);
 
+    let total: usize = part_numbers.into_iter().map(|n| {n.val as usize}).sum();
 
-
-    
-
-
+    println!("Part1: {}", total);
 }
