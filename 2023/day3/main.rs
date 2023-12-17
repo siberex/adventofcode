@@ -50,13 +50,13 @@ fn filter_part_numbers(numbers: &[Number], schematic: &[Vec<Item>]) -> Vec<Numbe
             for i in (row - 1) ..= (row + 1) {
                 for j in (col - 1) ..= pos_after {
                     if i < 0 || j < 0 {
-                        continue;
+                        continue; // out of bounds
                     }
                     if (i == row) && (j >= col) && j < pos_after {
-                        continue;
+                        continue; // digits
                     }
                     if i >= rows_count || j >= cols_count {
-                        continue;
+                        continue; // out of bounds
                     }
         
                     match schematic[i as usize][j as usize] {
@@ -73,21 +73,31 @@ fn filter_part_numbers(numbers: &[Number], schematic: &[Vec<Item>]) -> Vec<Numbe
 
 
 fn get_gear_ratios(numbers: &[Number], schematic: &[Vec<Item>], row: usize, col: usize) -> Option<(u16, u16)> {
+    let rows_count = schematic.len() as isize;
+    let cols_count = schematic.get(0).unwrap_or(&Vec::<Item>::new()).len() as isize;
+
     static UNKNOWN_NUMBER: Number = Number{
         val: 0,
         row: 0,
         col: 0,
         len: 0,
     };
-    
+
     let mut num_indicies: HashSet<usize> = HashSet::new();
-    
+
     // Look for numbers around [row, col]
     for i in (row - 1) as isize ..= (row + 1) as isize {
         for j in (col - 1) as isize ..= (col + 1) as isize {
-            if i < 0 || j < 0 || i == j {
-                continue;
+            if i < 0 || j < 0 {
+                continue; // out of bounds
             }
+            if i == row as isize && j == col as isize {
+                continue; // '*' symbol position
+            }
+            if i >= rows_count || j >= cols_count {
+                continue; // out of bounds
+            }
+
             match schematic[i as usize][j as usize] {
                 Item::NumberReference(index) => {
                     num_indicies.insert(index);
@@ -105,6 +115,7 @@ fn get_gear_ratios(numbers: &[Number], schematic: &[Vec<Item>], row: usize, col:
             .collect();
 
         let cogs: (u16, u16) = (nums[0], nums[1]);
+        // println!("{}: {} * {}", row, cogs.0, cogs.1);
         return Some(cogs);
     }
 
@@ -153,6 +164,9 @@ fn main() {
     let mut numbers: Vec<Number> = Vec::new();
 
     for (row, line) in contents.lines().enumerate() {
+        if line.trim().len() == 0 {
+            continue;
+        }
         // println!("{}: {}", row, line);
 
         let mut nums_matched = match_numbers(line, row);
@@ -193,8 +207,6 @@ fn main() {
     println!("Part1: {}", total);
 
     let ratios = calculate_gear_ratios(&numbers, &schematic);
-
-    // FIXME: 87204537 => answer is too low
     println!("Part2: {}", ratios);
 
 }
