@@ -9,8 +9,10 @@ import (
 )
 
 func main() {
-	inputFile, err := os.Open("input.sample.txt")
-	// file, err := os.Open("input.txt")
+	// inputFilePath := "input.sample.txt"
+	inputFilePath := "input.txt"
+
+	inputFile, err := os.Open(inputFilePath)
 	CheckErr(err)
 	defer inputFile.Close()
 	var times []int
@@ -41,10 +43,37 @@ func main() {
 	// fmt.Println(times)
 	// fmt.Println(distances)
 
-	input := Zip(times, distances)
-	fmt.Println(input)
+	raceConditions := Zip(times, distances)
+	raceWins := getRaceWins(raceConditions)
+	// fmt.Println(raceWins)
+
+	part1 := Reduce(raceWins, MultiplyNonZero, 1)
+	fmt.Printf("Part1: %d\n", part1)
 }
 
-func race(raceConditions []Pair[int, int]) {
+func getRaceWins(raceConditions []Pair[int, int]) []int {
+	waysToWin := make([]int, len(raceConditions))
+	for _, r := range raceConditions {
+		wins := race(r.Time, r.Distance)
+		waysToWin = append(waysToWin, wins)
+		//fmt.Println(r, wins)
+	}
+	return waysToWin
+}
 
+func race(timeLimit int, distanceRecord int) int {
+	wins := 0
+
+	for tHold := 1; tHold < timeLimit; tHold++ {
+		timeToMove := timeLimit - tHold
+		acceleration := tHold
+
+		distance := timeToMove * acceleration
+
+		if distance > distanceRecord {
+			wins++
+		}
+	}
+
+	return wins
 }
