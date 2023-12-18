@@ -19,3 +19,7 @@ https://github.com/jonathanpaulson/AdventOfCode
 Kotlin:
 
 https://github.com/nthistle/advent-of-code-2022-kotlin
+
+Scala:
+
+https://github.com/saftacatalinmihai/aoc_2023
