@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -17,6 +18,9 @@ func main() {
 	defer inputFile.Close()
 	var times []int
 	var distances []int
+
+	var theTime uint64
+	var theDistance uint64
 
 	scanner := bufio.NewScanner(inputFile)
 	for scanner.Scan() {
@@ -32,23 +36,34 @@ func main() {
 		switch parts[0] {
 		case "Time":
 			times = Map(strings.Fields(parts[1]), Atoi)
+
+			// Part 2
+			theTime, _ = strconv.ParseUint(strings.ReplaceAll(parts[1], " ", ""), 10, 64)
 		case "Distance":
 			distances = Map(strings.Fields(parts[1]), Atoi)
+
+			// Part 2
+			// One unit of a number: "390   1103   1112   1360" → 390110311121360
+			// Still fits to uint64 though
+			theDistance, _ = strconv.ParseUint(strings.ReplaceAll(parts[1], " ", ""), 10, 64)
 		default:
 			log.Fatalf("Wrong input: %s", parts[0])
 		}
 	}
 	CheckErr(scanner.Err())
 
-	// fmt.Println(times)
-	// fmt.Println(distances)
-
+	// Part 1
 	raceConditions := Zip(times, distances)
 	raceWins := getRaceWins(raceConditions)
 	// fmt.Println(raceWins)
 
 	part1 := Reduce(raceWins, MultiplyNonZero, 1)
 	fmt.Printf("Part1: %d\n", part1)
+
+	// Part 2
+	// fmt.Println(theTime, theDistance)
+	part2 := race(int(theTime), int(theDistance))
+	fmt.Printf("Part2: %d\n", part2)
 }
 
 func getRaceWins(raceConditions []Pair[int, int]) []int {
