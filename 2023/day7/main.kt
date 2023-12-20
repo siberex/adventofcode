@@ -2,62 +2,98 @@ import kotlin.io.path.Path
 import kotlin.io.path.readLines
 
 
-data class Hand(var cards: List<Int> = emptyList()) {
-    
-    var bid: Int = 0
-    var raw: String = ""
-    var sorted: String = ""
+// const val INPUT_FILE_PATH = "input.txt"
+const val INPUT_FILE_PATH = "input.sample.txt"
 
-    val type get(): Int {
-        return this.bid * 1000
+
+const val CARDS_PATTERN = "AKQJT98765432"
+
+
+// There are 7 types of hands, from strongest to weakest:
+// - 5 of a kind: AAAAA
+// - 4 of a kind: AA8AA
+// - Full house (2 of a kind + 3 of a kind): 23332
+// - 3 of a kind: TTT98
+// - two pairs: 23432
+// - one pair: A23A4
+// - High card: each different, 23456
+enum class HandType(val pattern: String) {
+    FIVE_OF_A_KIND("5"),
+    FOUR_OF_A_KIND("14"),
+    FULL_HOUSE("23"),
+    THREE_OF_A_KIND("113"),
+    TWO_PAIRS("122"),
+    ONE_PAIR("1112"),
+    HIGH_CARD("11111");
+
+    companion object {
+        fun fromPattern(pattern: String?): HandType? = entries.find { it.pattern == pattern }
+    }
+}
+
+val cardsComparator = object : Comparator<Char> {
+    override fun compare(a: Char, b: Char): Int {
+        return CARDS_PATTERN.indexOf(a) - CARDS_PATTERN.indexOf(b)
+    }
+}
+
+
+data class Hand(val cards: String = "", val bid: Int = 0) {
+    init {
+        require (Hand.regexCards.matches(cards)) {
+            "Invalid input: " + cards
+        }
+        require (bid > 0) {
+            "Invalid input: bid value should be > 0, provided bid = " + bid.toString()
+        }
+    }
+
+    val sortedCards: String = cards.toCharArray().sortedWith(cardsComparator).joinToString("")
+
+    private var _type: HandType? = null
+    val type get(): HandType {
+        if (_type == null) {
+            val pattern = Hand.cardPattern(cards)
+            _type = HandType.fromPattern(pattern)
+        }
+
+        return _type ?: throw AssertionError("Mangled internal property _type")
     }
 
     companion object {
-        val cardKyes = "AKQJT98765432".toSet()
-        val cardValues = listOf(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41)
-            .reversed()
+        @JvmField val regexCards = Regex("[%s]{5}".format(CARDS_PATTERN))
 
-        val cardsMap: Map<Char, Int> = 
-                cardKyes.zip(cardValues.asIterable())
-                    .toMap()
+        // Factory
+        fun create(raw: String): Hand {
+            val (strCards, strBid) = raw.split(" ")
+            return Hand(strCards, strBid.toInt())
+        }
 
-        val cardsMapInverse: Map<Int, Char> = 
-                cardValues.zip(cardKyes.asIterable())
-                    .toMap()
+        fun countUniqueChars(str: String): Map<Char, Int> {
+            // "AA334" → [A, 3, 4]
+            val arr = str.toSet() // str.toCharArray().distinct()
+            // [2, 2, 1]
+            val charCounts = arr.map { char -> str.count { it == char } }
 
-        
+            // {A=2, 3=2, 4=1}
+            return arr.zip(charCounts).toMap()
+        }
+
+        fun cardPattern(str: String): String {
+            // "AA334" → {A=2, 3=2, 4=1}
+            val countUniq = countUniqueChars(str)
+            // [2, 2, 1] → "122"
+            return countUniq.values.sorted().joinToString(separator = "")
+        }
     }
 
-    constructor(
-        cards: List<Int> = emptyList(),
-        bid: Int = 0,
-        raw: String = "",
-    ): this(cards) {
-        this.bid = bid
-        this.raw = raw        
-    }
+    override fun toString() = "%s (#%d %s), bid %d".format(
+        sortedCards,
+        type.ordinal,
+        type,
+        bid
+    )
 
-    constructor(raw: String): this() {
-        val (strCards, strBid) = raw.split(" ")
-        this.raw = strCards
-        this.bid = strBid.toInt()
-        this.cards = strCards.toList().map { Hand.cardsMap[it] ?: 0 }
-        this.sort()
-    }
-
-    fun sort(): Unit {
-        this.cards = this.cards.sortedBy { it }
-    }
-
-    override fun toString(): String {
-        val cardChars = this.cards.map { Hand.cardsMapInverse[it] ?: "" }
-        val handStr = cardChars.joinToString(separator = "")
-        return handStr + ": " + this.bid.toString()
-    }
-
-    fun countRepetitions() {
-
-    }
 }
 
 
@@ -68,46 +104,14 @@ fun readInput(path: String): List<String> = Path("$path").readLines()
 
 
 fun main() {
-    // val inputFilePath = "input.txt"
-    val inputFilePath = "input.sample.txt"
-    
-    // println(Hand.cardsMapInverse)
-
-    val lines = readInput(inputFilePath)
+    val lines = readInput(INPUT_FILE_PATH)
 
     val hands = lines.filter { it.trim().length > 0 }
-                    .map { Hand(it) }
-                    .sortedBy{ it.bid }
+                    .map { Hand.create(it) }
+                    .sortedBy{ it.type.ordinal }
 
     for (h in hands) {
-        println(h.type)
+        println(h)
     }
-
-    // Types of hands, from strongest to weakest:
-    // FOR SORTED STRINGS
-    // - 5 of a kind: ([AKQJT2-9])\1{4}
-    // - 4 of a kind: ([AKQJT2-9])\1{3}
-    // - Full house: ...
-    // - 3 of a kind: ([AKQJT2-9])\1{2}
-    // - two pairs: ([AKQJT2-9])\1{1} - two matches
-    // - one pair: ([AKQJT2-9])\1{1} - one match
-    // - High card: ...
-    //
-
-    // Number of combinations:
-    // AKQJT98765432
-    // ×
-    // 12345
-    //
-    // - 5 of a kind: 13 combinations
-    // - 4 of a kind: 13 * 12 = 156 combinations
-    // - Full house: (3 of a kind + 2 of a kind): 13 * 12 = 156
-    // - 3 of a kind: 13 * 12 * 11 = 1716 combinations
-    // - two pairs: 13 * 12 * 11 = 1716 combinations
-    // - one pair: 13 * 12 * 11 * 10 = 17160 combinations
-    // - High card: 13 * 12 * 11 * 10 * 9 = 154440 combinations
-    // 
-    
-
 
 }
