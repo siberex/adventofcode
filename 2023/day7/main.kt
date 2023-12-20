@@ -1,9 +1,11 @@
+import kotlin.Comparable
 import kotlin.io.path.Path
 import kotlin.io.path.readLines
+import kotlin.math.min
 
 
-// const val INPUT_FILE_PATH = "input.txt"
-const val INPUT_FILE_PATH = "input.sample.txt"
+const val INPUT_FILE_PATH = "input.txt"
+// const val INPUT_FILE_PATH = "input.sample.txt"
 
 
 const val CARDS_PATTERN = "AKQJT98765432"
@@ -31,14 +33,26 @@ enum class HandType(val pattern: String) {
     }
 }
 
-val cardsComparator = object : Comparator<Char> {
-    override fun compare(a: Char, b: Char): Int {
-        return CARDS_PATTERN.indexOf(a) - CARDS_PATTERN.indexOf(b)
+
+val cardsComparator = object : Comparator<String> {
+    override fun compare(a: String, b: String): Int {      
+        val len = min(a.length, b.length) - 1
+        for (i in 0..len) {
+            // try {
+                val ai = CARDS_PATTERN.indexOf(a.get(i))
+                val bi = CARDS_PATTERN.indexOf(b.get(i))
+
+                if (ai != bi) return bi - ai
+            // } catch (e: java.lang.StringIndexOutOfBoundsException) {
+            //     return 0
+            // }
+        }
+        return 0
     }
 }
 
 
-data class Hand(val cards: String = "", val bid: Int = 0) {
+data class Hand(val cards: String = "", val bid: Int = 0) : Comparable<Hand> {
     init {
         require (Hand.regexCards.matches(cards)) {
             "Invalid input: " + cards
@@ -48,7 +62,7 @@ data class Hand(val cards: String = "", val bid: Int = 0) {
         }
     }
 
-    val sortedCards: String = cards.toCharArray().sortedWith(cardsComparator).joinToString("")
+    val sortedCards: String = cards.toCharArray().sortedBy{ CARDS_PATTERN.indexOf(it) }.joinToString("")
 
     private var _type: HandType? = null
     val type get(): HandType {
@@ -87,13 +101,18 @@ data class Hand(val cards: String = "", val bid: Int = 0) {
         }
     }
 
-    override fun toString() = "%s (#%d %s), bid %d".format(
+    override fun toString() = "%s |%s| (#%d %s), bid %d".format(
+        cards,
         sortedCards,
         type.ordinal,
         type,
         bid
     )
 
+    override fun compareTo(other: Hand): Int = when {
+        type != other.type -> other.type.ordinal - type.ordinal
+		else -> cardsComparator.compare(cards, other.cards)
+	}
 }
 
 
@@ -108,10 +127,14 @@ fun main() {
 
     val hands = lines.filter { it.trim().length > 0 }
                     .map { Hand.create(it) }
-                    .sortedBy{ it.type.ordinal }
+                    .sorted()
 
-    for (h in hands) {
-        println(h)
+    var total = 0
+
+    hands.forEachIndexed{ rank, hand -> 
+        total += (rank+1) * hand.bid
+        // println(hand)
     }
+    println("Part1: %d".format(total))
 
 }
