@@ -9,6 +9,7 @@ const val INPUT_FILE_PATH = "input.txt"
 
 
 const val CARDS_PATTERN = "AKQJT98765432"
+const val CARDS_PATTERN_WILD = "AKQT98765432J"
 
 
 // There are 7 types of hands, from strongest to weakest:
@@ -26,22 +27,80 @@ enum class HandType(val pattern: String) {
     THREE_OF_A_KIND("113"),
     TWO_PAIRS("122"),
     ONE_PAIR("1112"),
-    HIGH_CARD("11111");
+    HIGH_CARD("11111"),
+    UNKNOWN("xxx");
 
     companion object {
-        fun fromPattern(pattern: String?): HandType? = entries.find { it.pattern == pattern }
+        const val WILDCARD = 'J'
+
+        private fun countUniqueChars(str: String): Map<Char, Int> {
+            // "AA334" → [A, 3, 4]
+            val arr = str.toSet() // str.toCharArray().distinct()
+            // [2, 2, 1]
+            val charCounts = arr.map { char -> str.count { it == char } }
+
+            // {A=2, 3=2, 4=1}
+            return arr.zip(charCounts).toMap()
+        }
+
+        // {A=2, 3=2, 4=1} → [2, 2, 1] → "122"
+        private fun cardPattern(countUniq: Map<Char, Int>): String {
+            return countUniq.values.sorted().joinToString(separator = "")
+        }
+        
+        // "AA334" → "122"
+        private fun cardPattern(str: String): String {
+            // "AA334" → {A=2, 3=2, 4=1}
+            val countUniq = countUniqueChars(str)
+            // {A=2, 3=2, 4=1} → [2, 2, 1] → "122"
+            return cardPattern(countUniq)
+        }
+
+        private fun fromPattern(pattern: String): HandType = entries.find { it.pattern == pattern } ?: UNKNOWN
+        
+        fun fromCards(cards: String): HandType? {
+            val pattern = cardPattern(cards)
+            return fromPattern(pattern)
+        }
+
+        // With Joker (wildcard) HandType are to be re-mapped differently:
+        // HIGH_CARD("11111") → ONE_PAIR
+        // ONE_PAIR("1112") → THREE_OF_A_KIND
+        // TWO_PAIRS("122", 1×J) → FULL_HOUSE
+        // TWO_PAIRS("122", 2×J) → FOUR_OF_A_KIND
+        // THREE_OF_A_KIND("113") → FOUR_OF_A_KIND
+        // FULL_HOUSE("23") → FIVE_OF_A_KIND
+        // FOUR_OF_A_KIND("14") → FIVE_OF_A_KIND
+        // FIVE_OF_A_KIND("5") → FIVE_OF_A_KIND
+        fun fromWildCards(cards: String): HandType {
+            val countUniq = countUniqueChars(cards)
+            val pattern = cardPattern(countUniq)
+            val countWildcards: Int? = countUniq.get(WILDCARD)
+
+            if (countWildcards == null) {
+                return fromPattern(pattern)
+            }
+            
+            return when (pattern) {
+                "11111" -> ONE_PAIR
+                "1112" -> THREE_OF_A_KIND
+                "122" -> if (countWildcards == 1) FULL_HOUSE else FOUR_OF_A_KIND
+                "113" -> FOUR_OF_A_KIND
+                "23", "14", "5" -> FIVE_OF_A_KIND
+                else -> UNKNOWN
+            }
+        }
     }
 }
 
 
-val cardsComparator = object : Comparator<String> {
+val cardComparator = object : Comparator<String> {
     override fun compare(a: String, b: String): Int {      
         val len = min(a.length, b.length) - 1
         for (i in 0..len) {
             // try {
                 val ai = CARDS_PATTERN.indexOf(a.get(i))
                 val bi = CARDS_PATTERN.indexOf(b.get(i))
-
                 if (ai != bi) return bi - ai
             // } catch (e: java.lang.StringIndexOutOfBoundsException) {
             //     return 0
@@ -49,6 +108,26 @@ val cardsComparator = object : Comparator<String> {
         }
         return 0
     }
+}
+
+val wildcardComparator = object : Comparator<String> {
+    override fun compare(a: String, b: String): Int {      
+        val len = min(a.length, b.length) - 1
+        for (i in 0..len) {
+            val ai = CARDS_PATTERN_WILD.indexOf(a.get(i))
+            val bi = CARDS_PATTERN_WILD.indexOf(b.get(i))
+            if (ai != bi) return bi - ai
+        }
+        return 0
+    }
+}
+
+
+val wildcardRankingComparator = object : Comparator<Hand> {
+    override fun compare(a: Hand, b: Hand): Int = when {
+        a.typeWild != b.typeWild -> b.typeWild.ordinal - a.typeWild.ordinal
+		else -> wildcardComparator.compare(a.cards, b.cards)
+	}
 }
 
 
@@ -67,12 +146,19 @@ data class Hand(val cards: String = "", val bid: Int = 0) : Comparable<Hand> {
     private var _type: HandType? = null
     val type get(): HandType {
         if (_type == null) {
-            val pattern = Hand.cardPattern(cards)
-            _type = HandType.fromPattern(pattern)
+            _type = HandType.fromCards(cards)
         }
-
         return _type ?: throw AssertionError("Mangled internal property _type")
     }
+
+    private var _typeWild: HandType? = null
+    val typeWild get(): HandType {
+        if (_typeWild == null) {
+            _typeWild = HandType.fromWildCards(cards)
+        }
+        return _typeWild ?: throw AssertionError("Mangled internal property _typeWild")
+    }
+
 
     companion object {
         @JvmField val regexCards = Regex("[%s]{5}".format(CARDS_PATTERN))
@@ -82,36 +168,19 @@ data class Hand(val cards: String = "", val bid: Int = 0) : Comparable<Hand> {
             val (strCards, strBid) = raw.split(" ")
             return Hand(strCards, strBid.toInt())
         }
-
-        fun countUniqueChars(str: String): Map<Char, Int> {
-            // "AA334" → [A, 3, 4]
-            val arr = str.toSet() // str.toCharArray().distinct()
-            // [2, 2, 1]
-            val charCounts = arr.map { char -> str.count { it == char } }
-
-            // {A=2, 3=2, 4=1}
-            return arr.zip(charCounts).toMap()
-        }
-
-        fun cardPattern(str: String): String {
-            // "AA334" → {A=2, 3=2, 4=1}
-            val countUniq = countUniqueChars(str)
-            // [2, 2, 1] → "122"
-            return countUniq.values.sorted().joinToString(separator = "")
-        }
     }
 
-    override fun toString() = "%s |%s| (#%d %s), bid %d".format(
+    override fun toString() = "%s |%s| (%s / %s), bid %d".format(
         cards,
         sortedCards,
-        type.ordinal,
         type,
+        typeWild,
         bid
     )
 
     override fun compareTo(other: Hand): Int = when {
         type != other.type -> other.type.ordinal - type.ordinal
-		else -> cardsComparator.compare(cards, other.cards)
+		else -> cardComparator.compare(cards, other.cards)
 	}
 }
 
@@ -130,11 +199,16 @@ fun main() {
                     .sorted()
 
     var total = 0
-
     hands.forEachIndexed{ rank, hand -> 
         total += (rank+1) * hand.bid
         // println(hand)
     }
     println("Part1: %d".format(total))
 
+    var totalWildcard = 0
+    hands.sortedWith(wildcardRankingComparator).forEachIndexed{ rank, hand -> 
+        totalWildcard += (rank+1) * hand.bid
+        // println(hand)
+    }
+    println("Part2: %d".format(totalWildcard))
 }
