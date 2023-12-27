@@ -3,7 +3,7 @@
 set -euo pipefail
 
 BASEDIR="$( cd "$(dirname "$0")" ; pwd -P )"
-INPUT="input.sample2.txt1"
+INPUT="input.sample2.txt"
 
 zig run main.zig -- "$BASEDIR/$INPUT"
 

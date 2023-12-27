@@ -27,6 +27,8 @@ const Map = struct {
     allocator: mem.Allocator,
     map: std.StringHashMap(*Node),
     tree: ?*Node,
+    // startNodes: []*Node,
+    // endNodes: []*Node,
 
     fn init(memAllocator: mem.Allocator) Map {
         var map = std.StringHashMap(*Node).init(memAllocator);
@@ -70,7 +72,6 @@ const Map = struct {
 
     // First create left and right nodes (if not exists), then create root and attach left and right to it
     fn addNode(self: *Map, rootStr: []const u8, leftStr: []const u8, rightStr: []const u8) !void {
-        // Start tree from the current root if there are no entries in the map
         const firstNode = self.map.count() == 0;
 
         var left = self.map.get(leftStr);
@@ -109,17 +110,19 @@ const Map = struct {
         root.?.left = left;
         root.?.right = right;
 
-        if (firstNode) {
+        // Set tree root either to the first added node or to the last added node with the label "AAA"
+        if (firstNode or mem.eql(u8, rootStr, "AAA")) {
             self.tree = root;
         }
     }
 
     fn stepsToFinish(self: *Map, instructions: []const u8) void {
         var next = self.tree.?;
+        const finish = self.map.get("ZZZ") orelse next;
 
         var count: u64 = 0;
 
-        while (!mem.eql(u8, next.text, "ZZZ")) {
+        while (next != finish) {
             for (instructions) |char| {
                 count += 1;
                 switch (char) {
@@ -131,6 +134,11 @@ const Map = struct {
         }
 
         print("Total steps: {d}\n", .{count});
+    }
+
+    fn stepsToFinishAll(self: *Map, instructions: []const u8) void {
+        _ = instructions;
+        _ = self;
     }
 
     fn walk(self: *Map, instructions: []const u8) *Node {
@@ -207,15 +215,17 @@ pub fn parseInput(file_path: []const u8) !void {
 
         // print("{d}: {s} -> {s} | {s}\n", .{ lineIndex, root, left, right });
     }
+    // map.display();
 
     // Small test for walk():
     // const nodeGot = map.walk("LR");
     // const nodeExpected = map.tree.?.left.?.right.?;
     // assert(nodeGot == nodeExpected);
 
+    // Part1
     map.stepsToFinish(instructions);
 
-    // map.display();
+    // Part2...
 
     return;
 }
