@@ -1,7 +1,9 @@
 const std = @import("std");
-const mem = @import("std").mem;
-
+const assert = std.debug.assert;
 const print = std.debug.print;
+const mem = std.mem;
+const CircularBuffer = @import("circular_buffer.zig").CircularBuffer;
+
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const allocator = gpa.allocator();
 
@@ -21,6 +23,139 @@ const Node = struct {
     text: []const u8,
 };
 
+const Map = struct {
+    allocator: mem.Allocator,
+    map: std.StringHashMap(*Node),
+    tree: ?*Node,
+
+    fn init(memAllocator: mem.Allocator) Map {
+        var map = std.StringHashMap(*Node).init(memAllocator);
+
+        // var tree = Node{
+        //     .left = null,
+        //     .right = null,
+        //     .text = undefined,
+        // };
+
+        return .{
+            .allocator = memAllocator,
+            .map = map,
+            .tree = null,
+        };
+    }
+
+    fn deinit(self: Map) void {
+        // const memAllocator = self.allocator;
+        var map = self.map;
+
+        var it = map.valueIterator();
+        while (it.next()) |nodePtr| {
+            self.allocator.destroy(nodePtr.*);
+        }
+
+        map.deinit();
+    }
+
+    fn display(self: Map) void {
+        var it = self.map.valueIterator();
+
+        while (it.next()) |nodePtr| {
+            const node = nodePtr.*;
+            const text = node.text;
+            const left = node.left;
+            const right = node.right;
+            print("{s} -> {s} | {s}\n", .{ text, left.?.text, right.?.text });
+        }
+    }
+
+    // First create left and right nodes (if not exists), then create root and attach left and right to it
+    fn addNode(self: *Map, rootStr: []const u8, leftStr: []const u8, rightStr: []const u8) !void {
+        // Start tree from the current root if there are no entries in the map
+        const firstNode = self.map.count() == 0;
+
+        var left = self.map.get(leftStr);
+        if (left) |v| {
+            // dummy assertion
+            assert(mem.eql(u8, v.text, leftStr));
+        } else {
+            left = try self.allocator.create(Node); // *Node
+            left.?.text = leftStr;
+
+            try self.map.put(leftStr, left.?);
+        }
+
+        var right = self.map.get(rightStr);
+        if (right) |v| {
+            // dummy assertion
+            assert(mem.eql(u8, v.text, rightStr));
+        } else {
+            right = try self.allocator.create(Node); // *Node
+            right.?.text = rightStr;
+
+            try self.map.put(rightStr, right.?);
+        }
+
+        var root = self.map.get(rootStr);
+        if (root) |v| {
+            // dummy assertion
+            assert(mem.eql(u8, v.text, rootStr));
+        } else {
+            root = try self.allocator.create(Node); // *Node
+            root.?.text = rootStr;
+
+            try self.map.put(rootStr, root.?);
+        }
+
+        root.?.left = left;
+        root.?.right = right;
+
+        if (firstNode) {
+            self.tree = root;
+        }
+    }
+
+    fn stepsToFinish(self: *Map, instructions: []const u8) void {
+        var next = self.tree.?;
+
+        var count: u64 = 0;
+
+        while (!mem.eql(u8, next.text, "ZZZ")) {
+            for (instructions) |char| {
+                count += 1;
+                switch (char) {
+                    'L' => next = next.left.?,
+                    'R' => next = next.right.?,
+                    else => fmtPanic("Unknown instruction '{c}': {s}", .{ char, instructions }),
+                }
+            }
+        }
+
+        print("Total steps: {d}\n", .{count});
+    }
+
+    fn walk(self: *Map, instructions: []const u8) *Node {
+        // FIXME: Do I need to check for self-references?
+        var next = self.tree.?;
+
+        for (instructions) |char| {
+            switch (char) {
+                'L' => {
+                    next = next.left.?;
+                    // print("{s}", .{"←"});
+                },
+                'R' => {
+                    next = next.right.?;
+                    // print("{s}", .{"→"});
+                },
+                else => fmtPanic("Unknown instruction '{c}': {s}", .{ char, instructions }),
+            }
+        }
+        // print("\n", .{});
+
+        return next;
+    }
+}; // Map
+
 pub fn parseInput(file_path: []const u8) !void {
     const file = std.fs.cwd().openFile(file_path, .{ .mode = .read_only }) catch |err| switch (err) {
         error.FileNotFound, error.AccessDenied, error.BadPathName => fmtPanic("Could not read file: {s}", .{file_path}),
@@ -30,15 +165,9 @@ pub fn parseInput(file_path: []const u8) !void {
 
     var lineIndex: u32 = 0;
     var instructions: []const u8 = "";
-    var tree = Node{
-        .left = null,
-        .right = null,
-        .text = undefined,
-    };
-    var map = std.StringHashMap(*Node).init(allocator);
 
-    _ = map;
-    _ = tree;
+    var map = Map.init(allocator);
+    defer map.deinit();
 
     var buf_reader = std.io.bufferedReader(file.reader());
     var in_stream = buf_reader.reader();
@@ -52,7 +181,7 @@ pub fn parseInput(file_path: []const u8) !void {
         }
 
         if (lineIndex == 1) {
-            instructions = line;
+            instructions = try allocator.dupe(u8, line);
             continue;
         }
 
@@ -60,7 +189,6 @@ pub fn parseInput(file_path: []const u8) !void {
         var splitIt = std.mem.splitSequence(u8, line, " = ");
         const root = splitIt.first();
         var strBranches = splitIt.next() orelse "";
-
         if (strBranches.len == 0) {
             fmtPanic("Wrong input on line {d}: {s}", .{ lineIndex, line });
         }
@@ -68,16 +196,26 @@ pub fn parseInput(file_path: []const u8) !void {
         // "(BBB, CCC)" → "BBB", "CCC"
         strBranches = mem.trimLeft(u8, strBranches, "(");
         strBranches = mem.trimRight(u8, strBranches, ")");
-
-        var splitBrIt = std.mem.splitSequence(u8, strBranches, ", ");
-        const left = splitBrIt.first();
-        const right = splitBrIt.next() orelse "";
+        splitIt = std.mem.splitSequence(u8, strBranches, ", ");
+        const left = splitIt.first();
+        const right = splitIt.next() orelse "";
         if (right.len == 0) {
             fmtPanic("Wrong input on line {d}: {s}", .{ lineIndex, line });
         }
 
-        print("{d}: {s} -> {s} | {s}\n", .{ lineIndex, root, left, right });
+        try map.addNode(try allocator.dupe(u8, root), try allocator.dupe(u8, left), try allocator.dupe(u8, right));
+
+        // print("{d}: {s} -> {s} | {s}\n", .{ lineIndex, root, left, right });
     }
+
+    // Small test for walk():
+    // const nodeGot = map.walk("LR");
+    // const nodeExpected = map.tree.?.left.?.right.?;
+    // assert(nodeGot == nodeExpected);
+
+    map.stepsToFinish(instructions);
+
+    // map.display();
 
     return;
 }
