@@ -27,8 +27,6 @@ const Map = struct {
     allocator: mem.Allocator,
     map: std.StringHashMap(*Node),
     tree: ?*Node,
-    // startNodes: []*Node,
-    // endNodes: []*Node,
 
     fn init(memAllocator: mem.Allocator) Map {
         var map = std.StringHashMap(*Node).init(memAllocator);
@@ -133,32 +131,70 @@ const Map = struct {
             }
         }
 
-        print("Total steps: {d}\n", .{count});
+        print("Part1: {d}\n", .{count});
     }
 
-    fn stepsToFinishAll(self: *Map, instructions: []const u8) void {
-        _ = instructions;
-        _ = self;
+    fn stepsToFinishAll(self: *Map, instructions: []const u8) !void {
+        var startNodes = std.ArrayList(*Node).init(self.allocator);
+        defer startNodes.deinit();
+
+        // var endNodes = std.ArrayList(*Node).init(self.allocator);
+        // defer endNodes.deinit();
+
+        // Find all nodes with labes ending in "..A"
+        var it = self.map.keyIterator();
+        while (it.next()) |k| {
+            const key = k.*;
+            if (key.len != 3) continue;
+            if (key[2] == 'A') try startNodes.append(self.map.get(key).?);
+            // if (key[2] == 'Z') try endNodes.append(self.map.get(key).?);
+        }
+
+        // for (startNodes.items) |s| print("→ {s}\n", .{s.text});
+        // for (endNodes.items) |s| print("← {s}\n", .{s.text});
+
+        var startArr = try startNodes.toOwnedSlice();
+        defer allocator.free(startArr);
+
+        var count: usize = 0;
+        var countEnds: usize = 0;
+
+        while (startArr.len != countEnds) {
+            for (instructions) |char| {
+                countEnds = 0;
+                count += 1;
+
+                for (startArr, 0..) |n, i| {
+                    var next = n;
+
+                    switch (char) {
+                        'L' => next = next.left.?,
+                        'R' => next = next.right.?,
+                        else => {},
+                    }
+
+                    if (next.text[2] == 'Z') {
+                        countEnds += 1;
+                    }
+
+                    startArr[i] = next;
+                }
+            }
+        }
+
+        print("Part2: {d}\n", .{count});
     }
 
     fn walk(self: *Map, instructions: []const u8) *Node {
-        // FIXME: Do I need to check for self-references?
         var next = self.tree.?;
 
         for (instructions) |char| {
             switch (char) {
-                'L' => {
-                    next = next.left.?;
-                    // print("{s}", .{"←"});
-                },
-                'R' => {
-                    next = next.right.?;
-                    // print("{s}", .{"→"});
-                },
+                'L' => next = next.left.?,
+                'R' => next = next.right.?,
                 else => fmtPanic("Unknown instruction '{c}': {s}", .{ char, instructions }),
             }
         }
-        // print("\n", .{});
 
         return next;
     }
@@ -225,7 +261,8 @@ pub fn parseInput(file_path: []const u8) !void {
     // Part1
     map.stepsToFinish(instructions);
 
-    // Part2...
+    // Part2
+    try map.stepsToFinishAll(instructions);
 
     return;
 }
