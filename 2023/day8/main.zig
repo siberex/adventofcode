@@ -31,13 +31,28 @@ fn indexOf(needle: *Node, haystack: []*Node) ?usize {
     return null;
 }
 
+fn indexOfStrSlice(needle: []const u8, haystack: [][]const u8) ?usize {
+    for (haystack, 0..) |current, i| {
+        if (mem.eql(u8, needle, current)) {
+            return i;
+        }
+    }
+    return null;
+}
+
+const ArrMap = std.ArrayHashMap([]const u8, *Node, std.array_hash_map.StringContext, false);
+
 const Map = struct {
     allocator: mem.Allocator,
-    map: std.StringHashMap(*Node),
+    map: ArrMap,
     tree: ?*Node,
+    list: std.ArrayList([]const u8),
 
     pub fn init(allocator: mem.Allocator) Map {
-        var map = std.StringHashMap(*Node).init(allocator);
+        var map = ArrMap.init(allocator);
+
+        // list of node names, preserving node adding order
+        var list = std.ArrayList([]const u8).init(allocator);
 
         // var tree = Node{
         //     .left = null,
@@ -49,6 +64,7 @@ const Map = struct {
             .allocator = allocator,
             .map = map,
             .tree = null,
+            .list = list,
         };
     }
 
@@ -62,13 +78,11 @@ const Map = struct {
         }
 
         map.deinit();
+        self.list.deinit();
     }
 
     pub fn display(self: Map) void {
-        var it = self.map.iterator();
-
-        while (it.next()) |kv| {
-            const node = kv.value_ptr.*;
+        for (self.map.values()) |node| {
             const text = node.text;
             const left = node.left;
             const right = node.right;
@@ -116,6 +130,8 @@ const Map = struct {
         root.?.left = left;
         root.?.right = right;
 
+        try self.list.append(rootStr);
+
         // Set tree root either to the first added node or to the last added node with the label "AAA"
         if (firstNode or mem.eql(u8, rootStr, "AAA")) {
             self.tree = root;
@@ -139,9 +155,7 @@ const Map = struct {
         defer endNodes.deinit();
 
         // Find all nodes with labes ending in "..A" or "..Z"
-        var it = self.map.keyIterator();
-        while (it.next()) |k| {
-            const key = k.*;
+        for (self.map.keys()) |key| {
             if (key.len != 3) continue;
             if (key[2] == 'A') try startNodes.append(self.map.get(key).?);
             if (key[2] == 'Z') try endNodes.append(self.map.get(key).?);
@@ -291,6 +305,21 @@ pub fn parseInput(allocator: mem.Allocator, file_path: []const u8) !struct { map
 
         // print("{d}: {s} -> {s} | {s}\n", .{ lineIndex, root, left, right });
     }
+
+    const SortingContext = struct {
+        keys: [][]const u8,
+        orderedKeys: [][]const u8,
+
+        pub fn lessThan(ctx: @This(), a_index: usize, b_index: usize) bool {
+            const a = ctx.keys[a_index];
+            const b = ctx.keys[b_index];
+            const a_order = indexOfStrSlice(a, ctx.orderedKeys) orelse 65535;
+            const b_order = indexOfStrSlice(b, ctx.orderedKeys) orelse 65535;
+            return a_order < b_order;
+        }
+    };
+
+    map.map.sort(SortingContext{ .orderedKeys = map.list.items, .keys = map.map.keys() });
 
     return .{ .map = map, .instructions = instructions };
 }
