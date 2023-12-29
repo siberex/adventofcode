@@ -23,6 +23,15 @@ const Node = struct {
     text: []const u8,
 };
 
+fn indexOf(needle: *Node, haystack: []*Node) ?usize {
+    for (haystack, 0..) |current, i| {
+        if (needle == current) {
+            return i;
+        }
+    }
+    return null;
+}
+
 const Map = struct {
     allocator: mem.Allocator,
     map: std.StringHashMap(*Node),
@@ -114,70 +123,59 @@ const Map = struct {
         }
     }
 
-    fn stepsToFinish(self: *Map, instructions: []const u8) void {
-        var next = self.tree.?;
-        const finish = self.map.get("ZZZ") orelse next;
+    fn stepsToFinish(self: *Map, instructions: []const bool) void {
+        var start = self.tree.?;
+        const finish = self.map.get("ZZZ") orelse start;
 
-        var count: u64 = 0;
-
-        while (next != finish) {
-            for (instructions) |char| {
-                count += 1;
-                switch (char) {
-                    'L' => next = next.left.?,
-                    'R' => next = next.right.?,
-                    else => fmtPanic("Unknown instruction '{c}': {s}", .{ char, instructions }),
-                }
-            }
-        }
+        var count: u64 = self.walkFromNodeUntilNode(instructions, start, finish);
 
         print("Part1: {d}\n", .{count});
     }
 
-    fn stepsToFinishAll(self: *Map, instructions: []const u8) !void {
+    fn stepsToFinishAll(self: *Map, instructions: []const bool) !void {
         var startNodes = std.ArrayList(*Node).init(self.allocator);
         defer startNodes.deinit();
 
-        // var endNodes = std.ArrayList(*Node).init(self.allocator);
-        // defer endNodes.deinit();
+        var endNodes = std.ArrayList(*Node).init(self.allocator);
+        defer endNodes.deinit();
 
-        // Find all nodes with labes ending in "..A"
+        // Find all nodes with labes ending in "..A" or "..Z"
         var it = self.map.keyIterator();
         while (it.next()) |k| {
             const key = k.*;
             if (key.len != 3) continue;
             if (key[2] == 'A') try startNodes.append(self.map.get(key).?);
-            // if (key[2] == 'Z') try endNodes.append(self.map.get(key).?);
+            if (key[2] == 'Z') try endNodes.append(self.map.get(key).?);
         }
-
         // for (startNodes.items) |s| print("→ {s}\n", .{s.text});
         // for (endNodes.items) |s| print("← {s}\n", .{s.text});
 
-        var startArr = try startNodes.toOwnedSlice();
-        defer allocator.free(startArr);
+        const startNodesArr = try startNodes.toOwnedSlice();
+        defer allocator.free(startNodesArr);
+
+        const endNodesArr = try endNodes.toOwnedSlice();
+        defer allocator.free(endNodesArr);
 
         var count: usize = 0;
         var countEnds: usize = 0;
 
-        while (startArr.len != countEnds) {
-            for (instructions) |char| {
+        while (startNodesArr.len != countEnds) {
+            for (instructions) |direction| {
                 countEnds = 0;
                 count += 1;
-
-                for (startArr, 0..) |n, i| {
+                for (startNodesArr, 0..) |n, i| {
                     var next = n;
 
-                    switch (char) {
-                        'L' => next = next.left.?,
-                        'R' => next = next.right.?,
-                        else => {},
+                    switch (direction) {
+                        false => next = next.left.?,
+                        true => next = next.right.?,
                     }
 
-                    if (next.text[2] == 'Z') {
+                    if (indexOf(next, endNodesArr)) |_| {
                         countEnds += 1;
                     }
 
-                    startArr[i] = next;
+                    startNodesArr[i] = next;
                 }
             }
         }
@@ -185,20 +183,61 @@ const Map = struct {
         print("Part2: {d}\n", .{count});
     }
 
-    fn walk(self: *Map, instructions: []const u8) *Node {
+    fn walkFromNodeUntilNode(self: *Map, instructions: []const bool, fromNode: *Node, untilNode: *Node) usize {
+        _ = self;
+
+        var next = fromNode;
+        var count: usize = 0;
+
+        while (next != untilNode) {
+            for (instructions) |direction| {
+                count += 1;
+                switch (direction) {
+                    false => next = next.left.?,
+                    true => next = next.right.?,
+                }
+            }
+        }
+
+        return count;
+    }
+
+    // fn walkSteps(self: *Map, instructions: []const u8, steps: usize) *Node {
+
+    // }
+
+    fn walk(self: *Map, instructions: []const bool) *Node {
         var next = self.tree.?;
 
-        for (instructions) |char| {
-            switch (char) {
-                'L' => next = next.left.?,
-                'R' => next = next.right.?,
-                else => fmtPanic("Unknown instruction '{c}': {s}", .{ char, instructions }),
+        for (instructions) |direction| {
+            switch (direction) {
+                false => next = next.left.?,
+                true => next = next.right.?,
             }
         }
 
         return next;
     }
 }; // Map
+
+/// Converts instrictions string to array of booleans. L = false, R = true
+/// Allocates slice of instructions.len, so `defer allocator.free(v);` is a must.
+fn parseInstructions(memAllocator: mem.Allocator, instructions: []const u8) ![]const bool {
+    const res = try memAllocator.alloc(bool, instructions.len);
+    // errdefer memAllocator.free(res);
+
+    for (instructions, 0..) |char, i| {
+        switch (char) {
+            'L' => res[i] = false,
+            'R' => res[i] = true,
+            // It is better to panic than to return error here: https://github.com/ziglang/zig/issues/2647
+            // Also `zig run` will output useless `Segmentation fault at address 0x0` if error returned and not caught
+            else => fmtPanic("Unknown instruction '{c}' at index {d}: {s}", .{ char, i, instructions }),
+        }
+    }
+
+    return res;
+}
 
 pub fn parseInput(file_path: []const u8) !void {
     const file = std.fs.cwd().openFile(file_path, .{ .mode = .read_only }) catch |err| switch (err) {
@@ -208,7 +247,9 @@ pub fn parseInput(file_path: []const u8) !void {
     defer file.close();
 
     var lineIndex: u32 = 0;
-    var instructions: []const u8 = "";
+
+    var instructions: []const bool = undefined;
+    defer allocator.free(instructions);
 
     var map = Map.init(allocator);
     defer map.deinit();
@@ -225,7 +266,7 @@ pub fn parseInput(file_path: []const u8) !void {
         }
 
         if (lineIndex == 1) {
-            instructions = try allocator.dupe(u8, line);
+            instructions = try parseInstructions(allocator, line);
             continue;
         }
 
