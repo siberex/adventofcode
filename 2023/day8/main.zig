@@ -55,19 +55,20 @@ const Map = struct {
     pub fn deinit(self: Map) void {
         var map = self.map;
 
-        var it = map.valueIterator();
-        while (it.next()) |nodePtr| {
-            self.allocator.destroy(nodePtr.*);
+        var it = map.iterator();
+        while (it.next()) |kv| {
+            self.allocator.destroy(kv.value_ptr.*);
+            self.allocator.free(kv.key_ptr.*);
         }
 
         map.deinit();
     }
 
     pub fn display(self: Map) void {
-        var it = self.map.valueIterator();
+        var it = self.map.iterator();
 
-        while (it.next()) |nodePtr| {
-            const node = nodePtr.*;
+        while (it.next()) |kv| {
+            const node = kv.value_ptr.*;
             const text = node.text;
             const left = node.left;
             const right = node.right;
@@ -237,7 +238,7 @@ fn parseInstructions(allocator: mem.Allocator, instructions: []const u8) ![]cons
     return res;
 }
 
-pub fn parseInput(allocator: mem.Allocator, file_path: []const u8) !struct { Map, []const bool } {
+pub fn parseInput(allocator: mem.Allocator, file_path: []const u8) !struct { map: Map, instructions: []const bool } {
     const file = std.fs.cwd().openFile(file_path, .{ .mode = .read_only }) catch |err| switch (err) {
         error.FileNotFound, error.AccessDenied, error.BadPathName => fmtPanic(allocator, "Could not read file: {s}", .{file_path}),
         else => return err,
@@ -291,7 +292,7 @@ pub fn parseInput(allocator: mem.Allocator, file_path: []const u8) !struct { Map
         // print("{d}: {s} -> {s} | {s}\n", .{ lineIndex, root, left, right });
     }
 
-    return .{ map, instructions };
+    return .{ .map = map, .instructions = instructions };
 }
 
 pub fn main() !void {
@@ -306,8 +307,8 @@ pub fn main() !void {
 
     const result = try parseInput(allocator, file_path);
 
-    const map: Map = result[0];
-    const instructions = result[1];
+    const map = result.map;
+    const instructions = result.instructions;
     defer map.deinit();
     defer allocator.free(instructions);
 
