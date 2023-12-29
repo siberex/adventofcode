@@ -22,7 +22,7 @@ const Node = struct {
     text: []const u8,
 };
 
-fn indexOf(needle: *Node, haystack: []*Node) ?usize {
+fn indexOf(needle: *Node, haystack: []const *Node) ?usize {
     for (haystack, 0..) |current, i| {
         if (needle == current) {
             return i;
@@ -38,6 +38,24 @@ fn indexOfStrSlice(needle: []const u8, haystack: [][]const u8) ?usize {
         }
     }
     return null;
+}
+
+/// https://rosettacode.org/wiki/Least_common_multiple#Java
+fn LCM(m: usize, n: usize) usize {
+    if (n == 0 or m == 0) return 0;
+    if (n == m or n == 1) return m;
+    if (m == 1) return n;
+    var mm = m;
+    var nn = n;
+    while (mm != nn) {
+        while (mm < nn) {
+            mm += m;
+        }
+        while (nn < mm) {
+            nn += n;
+        }
+    }
+    return mm;
 }
 
 const ArrMap = std.ArrayHashMap([]const u8, *Node, std.array_hash_map.StringContext, false);
@@ -163,46 +181,30 @@ const Map = struct {
         // for (startNodes.items) |s| print("→ {s}\n", .{s.text});
         // for (endNodes.items) |s| print("← {s}\n", .{s.text});
 
-        const startNodesArr = try startNodes.toOwnedSlice();
-        defer self.allocator.free(startNodesArr);
+        const counts = try self.allocator.alloc(usize, startNodes.items.len);
 
-        const endNodesArr = try endNodes.toOwnedSlice();
-        defer self.allocator.free(endNodesArr);
-
-        var count: usize = 0;
-        var countEnds: usize = 0;
-
-        while (startNodesArr.len != countEnds) {
-            for (instructions) |direction| {
-                countEnds = 0;
-                count += 1;
-                for (startNodesArr, 0..) |n, i| {
-                    var next = n;
-
-                    switch (direction) {
-                        false => next = next.left.?,
-                        true => next = next.right.?,
-                    }
-
-                    if (indexOf(next, endNodesArr)) |_| {
-                        countEnds += 1;
-                    }
-
-                    startNodesArr[i] = next;
-                }
-            }
+        const nodes = startNodes.items;
+        for (nodes, 0..) |node, i| {
+            // Each starting node need counts[i] steps to reach any of the finishing nodes
+            counts[i] = self.walkFromNodeUntilVisitOneOfNodes(instructions, node, endNodes.items);
+            // print("{s}: {d}\n", .{ nodes[i].text, counts[i] });
         }
 
-        print("Part2: {d}\n", .{count});
+        var lcm = counts[0];
+        for (counts) |cnt| {
+            lcm = LCM(lcm, cnt);
+        }
+
+        print("Part2: {d}\n", .{lcm});
     }
 
-    fn walkFromNodeUntilNode(self: *const Map, instructions: []const bool, fromNode: *Node, untilNode: *Node) usize {
+    fn walkFromNodeUntilVisitOneOfNodes(self: *const Map, instructions: []const bool, fromNode: *Node, untilNodes: []*Node) usize {
         _ = self;
-
         var next = fromNode;
         var count: usize = 0;
+        // var endingIndex: ?usize = null;
 
-        while (next != untilNode) {
+        while (indexOf(next, untilNodes) == null) {
             for (instructions) |direction| {
                 count += 1;
                 switch (direction) {
@@ -210,14 +212,19 @@ const Map = struct {
                     true => next = next.right.?,
                 }
             }
+            // Tailed while will produce infinite loop for self-referencing nodes
+            // endingIndex = indexOf(next, untilNodes);
         }
 
         return count;
     }
 
-    // fn walkSteps(self: *Map, instructions: []const u8, steps: usize) *Node {
-
-    // }
+    fn walkFromNodeUntilNode(self: *const Map, instructions: []const bool, fromNode: *Node, untilNode: *Node) usize {
+        // Probably not the "idiomatic" way to convert a pointer to a slice of pointers (of length one)
+        var untilNodes: [1]*Node = undefined;
+        untilNodes[0] = untilNode;
+        return self.walkFromNodeUntilVisitOneOfNodes(instructions, fromNode, untilNodes[0..1]);
+    }
 
     pub fn walk(self: *const Map, instructions: []const bool) *Node {
         var next = self.tree.?;
